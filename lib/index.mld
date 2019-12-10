@@ -1,0 +1,105 @@
+
+{0 Streaming}
+
+Streaming abstractions that transform, combine or reduce large amounts of data
+efficiently, in constant space and without leaking resources.
+
+- {{!module:Streaming} Reference}
+- {{: #} Tutorial}
+- {{: #} Examples}
+- {{: https://github.com/rizo/streaming} GitHub Project}
+
+
+{1 Overview}
+
+{e Streaming} provides stream producers ({{:#sources} sources}), stream
+consumers ({{:#sinks} sinks}) and stream transformers ({{:#flows} flows}). The
+decoupled streaming abstractions are exposed in a convenient way in the
+{!module:Stream} module.
+
+The following features are provided:
+
+- {b Low memory usage}: large or infinite streams can be computed in constant
+  and small space. {{:#todo} Buffering} is possible when needed.
+- {b Blazing fast}: all models were designed with performance at core. See
+  {{:#todo} benchmarks} for detailed comparison with other libraries.
+- {b Resource safety}: resources in streaming pipelines are allocated
+  lazily and released as early as possible.
+- {b Flexibility}: both push-based and pull-based models are implemented.
+
+
+{1 Quickstart}
+
+{2 Install using opam}
+
+The library can be installed with OPAM: [opam install streaming].
+
+
+{2 Install using esy}
+
+Add ["@opam/streaming": "0.1"] to dependencies in your [package.json] file.
+
+
+{2 Use with dune}
+
+To start using {!module:Streaming} in your project add it to [libraries] in the
+[dune] file of your target.
+
+{[
+(executable
+  (public_name main)
+  (libraries streaming))
+]}
+
+
+{2 Use in utop}
+
+Fire up {{:#TODO} utop} and write:
+
+{[
+#require "streaming";;
+open Streaming;;
+Stream.(stdin |> take_while ((<>) "stop") |> stdout);;
+]}
+
+
+{1 Examples}
+
+It is recommended to open the top-level {!module:Streaming} module in your
+projects. This will expose the main streaming primitives such as
+{!module:Streaming.Stream} and {!module:Streaming.Sink}.
+
+{[
+open Streaming
+
+(* Print lines from stdin, ignoring empty input. *)
+let stdin_echo =
+  Stream.stdin
+  |> Stream.filter ((<>) "")
+  |> Stream.map (fun line -> "You wrote: " ^ line)
+  |> Stream.each print_endline
+]}
+
+
+{1 Concepts}
+
+- {{!module:Streaming.Stream} {b Streams}} - push-based producers of values.
+- {{!module:Streaming.Source} {b Sources}} - pull-based incremental producers of values.
+- {{!module:Streaming.Sink} {b Sinks}} - push-based consumers of values.
+- {{!module:Streaming.Flow} {b Flows}} - push-based transformation operations on values.
+
+
+{1 Troubleshooting}
+
+{3 Configuration}
+
+- [Error: Unbound module Streaming] - the library was not loaded into the
+  environment. See the {{:#quickstart} Quickstart} section for more
+  information.
+- Incorrect [Stream] module - if you forget to open [Streaming] your might
+  start using the [Stream] module from the standard library. This will result
+  in [Unbound value] and type mismatch errors.
+- My stream pipeline never terminates - this indicates that one of your
+  producers or transformers produces an infinite stream.
+
+

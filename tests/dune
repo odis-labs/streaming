@@ -1,0 +1,21 @@
+
+
+(executable
+  (name Stream_tests)
+  (modules Stream_tests)
+  (libraries streaming nanotest))
+
+(executable
+  (name Sink_tests)
+  (modules Sink_tests)
+  (libraries streaming nanotest))
+
+(executable
+  (name Source_tests)
+  (modules Source_tests)
+  (libraries streaming nanotest))
+
+(library
+  (name nanotest)
+  (modules Nanotest)
+  (libraries unix fmt))

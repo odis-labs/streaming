@@ -1,0 +1,17 @@
+(executable
+  (name Sinks)
+  (libraries streaming)
+  (preprocess future_syntax)
+  (modules Sinks))
+
+(executable
+  (name Collections_test)
+  (libraries collections)
+  (modules Collections_test))
+
+(executable
+  (name Wc)
+  (libraries streaming)
+  (modules Wc)
+  (ocamlopt_flags -unbox-closures -O3))
+
