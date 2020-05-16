@@ -6,31 +6,31 @@ let average1 =
 let average2 =
   Sink.(map (fun (x, y) -> x / y) (both sum length))
 
-let average3 =
-  let open Sink.Syntax in
-  let+ sum = Sink.sum
-  and+ len = Sink.length in
-  sum / len
+(* let average3 = *)
+(*   let open Sink.Syntax in *)
+(*   let+ sum = Sink.sum *)
+(*   and+ len = Sink.length in *)
+(*   sum / len *)
 
 
 
-open Stream.Syntax
+(* open Stream.Syntax *)
 
-let items () =
-  let* x = Stream.range 10 in
-  let* y = Stream.of_list ['x'; 'y'; 'z'] in
-  if x mod 2 = 0 then
-    yield (x, y)
-  else Stream.empty
+(* let items () = *)
+(*   let* x = Stream.range 10 in *)
+(*   let* y = Stream.of_list ['x'; 'y'; 'z'] in *)
+(*   if x mod 2 = 0 then *)
+(*     yield (x, y) *)
+(*   else Stream.empty *)
 
 
-let () =
-  Stream.each (fun (x, y) -> Printf.eprintf ">>> %d, %c\n" x y) (items ())
+(* let () = *)
+(*   Stream.each (fun (x, y) -> Printf.eprintf ">>> %d, %c\n" x y) (items ()) *)
 
 
 (*
 let x =
-  Flow.zip 
+  Flow.zip
     (Flow.map (fun x -> x))
     (Flow.map (fun x -> x * 10))
 *)

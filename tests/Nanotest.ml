@@ -71,7 +71,7 @@ let test ?(verbose = true) ty msg ~actual ~expected () =
 
 
 let raises ?(verbose = true) msg ~exn f () =
-  let state = 
+  let state =
     try let _ = f () in `No_exn
     with e -> if e = exn then `Ok else `Other e in
   match state with
@@ -90,7 +90,7 @@ let raises ?(verbose = true) msg ~exn f () =
     true
 
 
-let testable (type a) ?(equal: a -> a -> bool = Pervasives.(=)) (pp: a Fmt.t) : a testable =
+let testable (type a) ?(equal: a -> a -> bool = (=)) (pp: a Fmt.t) : a testable =
   let module M = struct
     type t = a
     let pp = pp

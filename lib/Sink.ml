@@ -2,7 +2,7 @@ open Types
 open Utils
 
 type ('a, 'b) t = ('a, 'b) sink =
-  Sink : { 
+  Sink : {
     init : unit -> 'acc;
     push : 'acc -> 'a -> 'acc;
     full : 'acc -> bool;
@@ -100,7 +100,7 @@ let drain =
     stop = (fun () -> ());
   }
 
-let each f = 
+let each f =
   Sink {
     init = (fun () -> ());
     push = (fun () x -> f x);

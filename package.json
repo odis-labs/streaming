@@ -1,0 +1,15 @@
+{
+  "name": "streaming",
+  "version": "0.2.0",
+  "esy": {
+    "build": "dune build --profile=release"
+  },
+  "dependencies": {
+    "ocaml": "~4.8.1000",
+    "@opam/stdlib-shims": "*"
+  },
+  "devDependencies": {
+    "ocaml": "~4.8.1000",
+    "@opam/dune": "*"
+  }
+}
