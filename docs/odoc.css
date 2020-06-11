@@ -649,14 +649,10 @@ h1+.modules, h1+.sel {
   margin-bottom: 0.3em;
 }
 
-.toc ul ul {
-  list-style-type: disc;
-  list-style-position: inside;
-}
 .toc ul li li {
   position: relative;
   /* border-left: 1px solid #ccc; */
-  padding-left: 18px;
+  padding-left: 15px;
   text-indent: -15px;
 }
 

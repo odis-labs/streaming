@@ -2,7 +2,7 @@ opam-version: "2.0"
 
 version: "0.8"
 homepage: "http://github.com/odis-labs/streaming"
-doc: "https://odis-labs.github.io/streaming/"
+doc: "https://odis-labs.github.io/streaming"
 bug-reports: "https://github.com/odis-labs/streaming/issues"
 license: "ISC"
 
