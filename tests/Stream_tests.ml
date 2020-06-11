@@ -2,13 +2,13 @@ open Streaming
 module T = Nanotest
 module S = Stream
 
-  
+
 let () =
   let verbose = true in
 
   let t = T.test T.int ~verbose in
   T.group "Stream.empty" [
-    t "empty length" ~actual:(S.length S.empty) ~expected:0;
+    t "empty length" ~actual:(S.len S.empty) ~expected:0;
   ];
 
   let t = T.test T.(list int) ~verbose in
@@ -44,21 +44,21 @@ let () =
   ];
   let t = T.test T.(list int) ~verbose in
   T.group "Stream.generate" [
-    t "empty" ~actual:S.(to_list (generate 0 (fun x -> x))) ~expected:[];
-    t "singleton" ~actual:S.(to_list (generate 1 (fun x -> x))) ~expected:[0];
-    t "small" ~actual:S.(to_list (generate 3 (fun x -> x))) ~expected:[0; 1; 2];
+    t "empty" ~actual:S.(to_list (generate ~len:0 (fun x -> x))) ~expected:[];
+    t "singleton" ~actual:S.(to_list (generate ~len:1 (fun x -> x))) ~expected:[0];
+    t "small" ~actual:S.(to_list (generate ~len:3 (fun x -> x))) ~expected:[0; 1; 2];
   ];
   let t = T.test T.(list int) ~verbose in
   T.group "Stream.repeat" [
-    t "empty" ~actual:S.(to_list (repeat ~n:0 42)) ~expected:[];
-    t "singleton" ~actual:S.(to_list (repeat ~n:1 42)) ~expected:[42];
-    t "multiple" ~actual:S.(to_list (repeat ~n:3 0)) ~expected:[0; 0; 0];
+    t "empty" ~actual:S.(to_list (repeat ~times:0 42)) ~expected:[];
+    t "singleton" ~actual:S.(to_list (repeat ~times:1 42)) ~expected:[42];
+    t "multiple" ~actual:S.(to_list (repeat ~times:3 0)) ~expected:[0; 0; 0];
     t "take infinite" ~actual:S.(to_list (take 3 (repeat 0))) ~expected:[0; 0; 0];
   ];
   T.group "Stream.repeatedly" [
-    t "empty" ~actual:S.(to_list (repeatedly ~n:0 (fun () -> 42))) ~expected:[];
-    t "singleton" ~actual:S.(to_list (repeatedly ~n:1 (fun () -> 42))) ~expected:[42];
-    t "multiple" ~actual:S.(to_list (repeatedly ~n:3 (fun () -> 0))) ~expected:[0; 0; 0];
+    t "empty" ~actual:S.(to_list (repeatedly ~times:0 (fun () -> 42))) ~expected:[];
+    t "singleton" ~actual:S.(to_list (repeatedly ~times:1 (fun () -> 42))) ~expected:[42];
+    t "multiple" ~actual:S.(to_list (repeatedly ~times:3 (fun () -> 0))) ~expected:[0; 0; 0];
     t "take infinite" ~actual:S.(to_list (take 3 (repeatedly (fun () -> 0)))) ~expected:[0; 0; 0];
   ];
   let t = T.test T.(list int) ~verbose in
@@ -160,7 +160,7 @@ let () =
     t "empty" ~expected:[] ~actual:S.(to_list (indexed empty));
     t "single" ~expected:[(0, 10)] ~actual:S.(to_list (indexed (single 10)));
     t "multiple" ~expected:[(0, 10); (1, 11); (2, 12)]
-      ~actual:S.(to_list (indexed (10--13)));
+      ~actual:S.(to_list (indexed (10-<13)));
   ];
 
   let t = T.test T.int ~verbose in
@@ -188,15 +188,15 @@ let () =
     t "both empty" ~expected:[]
       ~actual:S.(to_list (concat empty empty));
     t "left empty" ~expected:[0; 1; 2]
-      ~actual:S.(to_list (concat empty (0--3)));
+      ~actual:S.(to_list (concat empty (0-<3)));
     t "right empty" ~expected:[0; 1; 2]
-      ~actual:S.(to_list (concat (0--3) empty));
+      ~actual:S.(to_list (concat (0-<3) empty));
     t "both non-empty" ~expected:[0; 1; 2; 3; 4; 5]
-      ~actual:S.(to_list (concat (0--3) (3--6)));
+      ~actual:S.(to_list (concat (0-<3) (3-<6)));
     t "take, left infinite" ~expected:[0; 0; 0; 0]
-      ~actual:S.(to_list (take 4 (concat (repeat 0) (0--3))));
+      ~actual:S.(to_list (take 4 (concat (repeat 0) (0-<3))));
     t "take, right infinite" ~expected:[0; 1; 2; 0]
-      ~actual:S.(to_list (take 4 (concat (0--3) (repeat 0))));
+      ~actual:S.(to_list (take 4 (concat (0-<3) (repeat 0))));
     t "take, both infinite" ~expected:[0; 0; 0; 0]
       ~actual:S.(to_list (take 4 (concat (repeat 0) (repeat 1))));
   ];
@@ -208,17 +208,17 @@ let () =
     t "two empty" ~expected:[]
       ~actual:S.(to_list (flatten (of_list [empty; empty])));
     t "left empty" ~expected:[0; 1; 2]
-      ~actual:S.(to_list (flatten (of_list [0--3; empty])));
+      ~actual:S.(to_list (flatten (of_list [0-<3; empty])));
     t "right empty" ~expected:[0; 1; 2]
-      ~actual:S.(to_list (flatten (of_list [empty; 0--3])));
+      ~actual:S.(to_list (flatten (of_list [empty; 0-<3])));
     t "two" ~expected:[0; 1; 2; 3; 4; 5]
-      ~actual:S.(to_list (flatten (of_list [0--3; 3--6])));
+      ~actual:S.(to_list (flatten (of_list [0-<3; 3-<6])));
     t "three" ~expected:[0; 1; 2; 3; 4; 5]
-      ~actual:S.(to_list (flatten (of_list [0--2; 2--4; 4--6])));
+      ~actual:S.(to_list (flatten (of_list [0-<2; 2-<4; 4-<6])));
     t "take, left infinite" ~expected:[0; 0; 0]
-      ~actual:S.(to_list (take 3 (flatten (of_list [repeat 0; 0--6]))));
+      ~actual:S.(to_list (take 3 (flatten (of_list [repeat 0; 0-<6]))));
     t "take, right infinite" ~expected:[0; 1; 2]
-      ~actual:S.(to_list (take 3 (flatten (of_list [0--6; repeat 0]))));
+      ~actual:S.(to_list (take 3 (flatten (of_list [0-<6; repeat 0]))));
   ];
 
   let t = T.test T.(list int) ~verbose in
@@ -226,9 +226,9 @@ let () =
     t "empty inner and outer" ~expected:[]
       ~actual:S.(to_list (flat_map (fun _ -> empty) empty));
     t "empty inner" ~expected:[]
-      ~actual:S.(to_list (flat_map (fun _ -> empty) (0--10)));
+      ~actual:S.(to_list (flat_map (fun _ -> empty) (0-<10)));
     t "empty outer" ~expected:[]
-      ~actual:S.(to_list (flat_map (fun _ -> (0--5)) empty));
+      ~actual:S.(to_list (flat_map (fun _ -> (0-<5)) empty));
     t "single inner, empty outer" ~expected:[]
       ~actual:S.(to_list (flat_map single empty));
     t "single inner, single outer" ~expected:[42]
@@ -236,7 +236,7 @@ let () =
     t "single inner, double outer" ~expected:[1; 2]
       ~actual:S.(to_list (flat_map single (double 1 2)));
     t "duplicate outer" ~expected:[0; 0; 1; 1; 2; 2]
-      ~actual:S.(to_list (flat_map (fun x -> double x x) (0--3)));
+      ~actual:S.(to_list (flat_map (fun x -> double x x) (0-<3)));
     t "infinite inner, empty outer" ~expected:[]
       ~actual:S.(to_list (flat_map repeat empty));
     t "infinite inner, single outer, take" ~expected:[0; 0; 0]
@@ -253,8 +253,12 @@ let () =
   T.group "Stream.cycle" [
     t "single, take" ~expected:[0; 0; 0]
       ~actual:S.(to_list (take 3 (cycle (single 0))));
+    t "single, times" ~expected:[0; 0; 0]
+      ~actual:S.(to_list (cycle ~times:3 (single 0)));
+    t "range, times" ~expected:[0; 1; 0; 1; 0; 1]
+      ~actual:S.(to_list (cycle ~times:3 (0-<2)));
     t "range, take" ~expected:[0; 1; 0; 1]
-      ~actual:S.(to_list (take 4 (cycle (0--2))));
+      ~actual:S.(to_list (take 4 (cycle (0-<2))));
     t "infinite, take" ~expected:[0; 0; 0; 0]
       ~actual:S.(to_list (take 4 (cycle (repeat 0))));
     t "nested, take" ~expected:[0; 0; 0; 0]
@@ -269,7 +273,7 @@ let () =
     t "size 0, empty" ~expected:[]
       ~actual:S.(to_list (map to_list (partition 0 empty)));
     t "size 0, non-empty" ~expected:[]
-      ~actual:S.(to_list (map to_list (partition 0 (0--5))));
+      ~actual:S.(to_list (map to_list (partition 0 (0-<5))));
   ];
 
   let t = T.test T.(list int) ~verbose in
@@ -281,7 +285,7 @@ let () =
     t "double" ~expected:[1; 0; 2]
       ~actual:S.(to_list (interpose 0 (double 1 2)));
     t "range" ~expected:[5; 0; 6; 0; 7; 0; 8]
-      ~actual:S.(to_list (interpose 0 (5--9)));
+      ~actual:S.(to_list (interpose 0 (5-<9)));
   ];
 
 

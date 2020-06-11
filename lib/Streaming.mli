@@ -1,51 +1,82 @@
 
-(** Pure, safe and fast streaming abstractions that compose. *)
+(** Streaming abstractions that combine, transform and reduce large amounts of
+sequential data efficiently, in constant space and without leaking resources. *)
 
 (** {1:sources Sources}
 
-    Sources are streaming producers of values.
+    Sources are decoupled producer of values.
 
-    Elements are pulled from a source on demand. A source can have an internal
+    Elements are pulled from a source when needed. A source can have an internal
     state that will be lazily initialized when (and if) a consumer requests
     elements. The internal state will be safely disposed when the source runs
     out of elements, when the consumer terminates, or if an exception is raised
     at any point in the streaming pipeline.
 
-    {2 Custom sources}
+    Sources are a great way to define decoupled producers that can be consumed
+    with {!val:Stream.from}. To learn more about how to create sources see
+    {{:Source/index.html#creating-a-source} "Creating a source"}.
+
+    The following example creates a source that counts down to zero:
+
+    {[
+      let countdown n =
+        let init () = n in
+        let pull i =
+          if i = 0 then None
+          else Some (i, i - 1) in
+        Source.make ~init ~pull ()
+    ]}
+
+    It can be consumed with:
+
+    {[
+    # Stream.(from (countdown 3) |> into Sink.sum)
+    - : int = 6
+    ]} *)
+
+
+(** Type for sources that produce elements of type ['a]. *)
+type 'a source
+
+
+(** Module with defintions for sources.
+
+    Elements are pulled from a source when needed. A source can have an internal
+    state that will be lazily initialized when (and if) a consumer requests
+    elements. The internal state will be safely disposed when the source runs
+    out of elements, when the consumer terminates, or if an exception is raised
+    at any point in the streaming pipeline.
+
+    Sources are a great way to define decoupled producers that
+    can be consumed with {!val:Stream.from}.
+
+    Sources are "single shot" and will haver their input exhausted by most
+    operations. Consider {{!val:Sink.buffer} buffering} sources if you need to
+    reuse their input. *)
+module Source : sig
+
+  type 'a t = 'a source
+  (** The type for sources that produce elements of type ['a]. *)
+
+  (** {1 Creating a source}
 
     Implementing your own custom sources enables access to many useful
-    operations without much effort. To create a source use the
+    operations. The most flexible way to create a source is with the
     {!val:Source.make} function.
 
     The following example creates a source that counts down to zero:
 
     {[
       let countdown n =
+        let init () = n in
         let pull i =
           if i = 0 then None
           else Some (i, i - 1)) in
-        Source.make ~init:n ~pull
+        Source.make ~init ~pull
     ]}
 
-    For more details on sources see the {!module:Source} module. *)
-
-
-(** A streaming producer of values of type ['a].
-
-    The easiest way to create a source is to use the {!val:Source.unfold}
-    function. *)
-type 'a source
-
-
-(** Source implementations and operations on sources. *)
-module Source : sig
-  (* NOTE: For better performance, it is recommended that the [pull] function
-     caches the termination condition in case it is expensive. *)
-
-  type 'a t = 'a source
-  (** The type for sources that produce elements of type ['a]. *)
-
-  (** {1 Creating a source} *)
+    Alternatively, existing {!val:list}/{!val:array}/{!val:seq}/{!val:string}
+    sources, or others listed below, can be used. *)
 
   val empty : 'a t
   (** [zero] is an empty source. *)
@@ -55,6 +86,9 @@ module Source : sig
 
   val list : 'a list -> 'a t
   (** [list items] is a source with all elements from the [items] list. *)
+
+  val seq : 'a Seq.t -> 'a t
+  (** [seq items] is a source with all elements from the [items] sequence. *)
 
   val array : 'a array -> 'a t
   (** [array items] is a source with all elements from the [items] array. *)
@@ -68,8 +102,8 @@ module Source : sig
   val queue : 'a Queue.t -> 'a t
   (** [queue q] is a source with all characters from the [q] queue. *)
 
-  val generate : int -> (int -> 'a) -> 'a t
-  (** [generate n f] generates a source of length [n] mapping each index to an
+  val generate : len:int -> (int -> 'a) -> 'a t
+  (** [generate ~len f] generates a source of length [len] mapping each index to an
       element with [f]. *)
 
   val count : int -> int t
@@ -85,9 +119,13 @@ module Source : sig
       function that produces elements and an updated state. *)
 
   val make : init:(unit -> 's) -> pull:('s -> ('a * 's) option) ->
-    stop:('s -> unit) -> unit -> 'a t
-  (** [make ~init ~pull ~stop ()] is a source created from the [init], [pull]
-      and [stop] functions. *)
+    ?stop:('s -> unit) -> unit -> 'a t
+  (** [make ~init ~pull ~stop ()] is a value source created from the [init], [pull]
+      and [stop]. This function is similar to {!val:unfold} but
+      without lazy state initialization and state termination functions.
+
+      {b Note}: For better performance, it is recommended that the [pull]
+      function caches the termination condition in case it is expensive. *)
 
 
   (** {1 Zipping sources} *)
@@ -103,7 +141,11 @@ module Source : sig
       Equivalent to [zip_with (fun x y -> (x, y)) src1 src2]. *)
 
 
-  (** {1 Transforming a source} *)
+  (** {1 Transforming a source}
+
+      {b Note}: Instead of applying the transformation functions at the source,
+      consider using {!val:Stream.from} or defining your compuation as a
+      {!module:Flow} to make it reusable. *)
 
   val map : ('a -> 'b) -> 'a t -> 'b t
   (** A source with all elements transformed with a mapping function. *)
@@ -132,64 +174,58 @@ module Source : sig
       the rest. *)
 
 
-  (** {1 Consuming a source} *)
+  (** {1 Consuming a source}
+
+      Many consumers are available in the {!module:Sink} module. You can consume any source using a sink with:
+
+      {[
+      let source = Source.count 10 in
+      source
+      |> Stream.from
+      |> Stream.into Sink.last
+      ]}
+
+      Alternatively use the source consumers below for simple operations. *)
 
   val fold : ('r -> 'a -> 'r) -> 'r -> 'a t -> 'r
+  (** [fold step init source] reduces the values of [source] with the [step]
+      function, starting with [init].
 
-  val length : 'a t -> int
-  (** [length src] is the count of elements in [src]. *)
+      If the [step] function raises an exception, the source will be properly
+      terminated. *)
+
+  val len : 'a t -> int
+  (** [len src] is the count of elements in [src]. *)
 
   val each : ('a -> unit) -> 'a t -> unit
   (** [each f src] applies an effectful function [f] to all elements in [src]. *)
 
 
-  (** {1 Resource management} *)
+  (** {1 Resource handling} *)
 
   val dispose : 'a t -> unit
+  (** [dispose source] forces the termination of the source state. This
+      function is useful in situations when a leftover source is
+      produced in {!val:Stream.run}.
+
+      {b Note:} If the source is not already initialized, calling this function
+      will first initialize its state before it is terminated. *)
 end
 
 
 
 (** {1:sinks Sinks}
 
-  Sinks are streaming abstractions that consume values and produce a single
-  aggregated value as a result.
+  Sinks are decoupled consumer of values.
 
-  The result value is extracted from an internal state that is built
-  incrementally.
+  Sinks are streaming abstractions that consume values and produce an
+  aggregated value as a result. The result value is extracted from an internal
+  state that is built incrementally. The internal state can aquire resources
+  that are guaranteed to be terminated when the sink is filled.
 
-  {2 Combining sinks}
-
-  It is possible to {{:./Sink/index.html#combining-sinks} combine} sinks and produce a result
-  computed by multiple sinks at the same time. The most common example of this
-  is a sink that calculates the arithmetic mean, defined as:
-
-  {[
-    let mean =
-      let+ total = Sink.sum
-      and+ count = Sink.length in
-      total / count
-  ]}
-
-  {e Note:} This example uses the new applicative let-syntax.
-
-  When [mean] starts processing the input elements it will compute the sum
-  and the length at the same time, avoiding the need to process the input two
-  times.
-
-  Sinks are independent from sources and streams. You can think of them as
-  packed arguments for folding functions.
-
-  A convenient way to feed a sink is to use the {!val:Stream.into} function.
-
-  {[
-    Stream.into Sink.mean (Stream.of_list [2.0; 4.0; 5.0])
-  ]}
-
-  {2 Custom sinks}
-
-  Implementing custom sinks is useful to create a collection of reusable
-  streaming consumers for your application.
+  Sinks are a great way to define decoupled consumers that can be filled with
+  {!val:Stream.into}. To learn more about how to create sinks see
+  {{:Sink/index.html#creating-a-sink} "Creating a sink"}.
 
   The following example demonstrates a sink that consumes all elements into a list:
 
@@ -201,105 +237,134 @@ end
       Sink.make ~init ~push ~stop ()
   ]}
 
+  It can be used with:
 
-  *)
+  {[
+    # Stream.(iota 5 |> into list_sink)
+    - : int list = [0; 1; 2; 3; 4]
+  ]} *)
 
-(** A streaming consumer of values of type ['a] that, once done, produces a
-    value of type ['b]. *)
+(** Type for sinks that consume elements of type ['a] and, once done, produce
+    a value of type ['b]. *)
 type ('a, 'b) sink
 
 
-(** Operations on sinks and sink instances. *)
+(** Module with defintions for sinks.
+
+    Sinks are streaming abstractions that consume values and produce an
+    aggregated value as a result. The result value is extracted from an internal
+    state that is built incrementally. The internal state can aquire resources
+    that are guaranteed to be terminated when the sink is filled.
+
+    Sinks are a great way to define decoupled consumers that can be filled with
+    {!val:Stream.into}.
+
+    Sinks are independent from sources and streams. You can think of them as
+    packed arguments for folding functions with early termination. Formally,
+    they can also be interpreted as
+    {{:https://en.wikipedia.org/wiki/Moore_machine} Moore machine}. *)
 module Sink : sig
-  (**
 
+  (*
+    TODO: Move to the "Performance considerations" section.
     - The calls to `full` should be cheap as this function will be called to
-      avoid allocation of unnecessary resources. If the computation required to decide if the reducer is full is expensive, consider caching it whenever possible.
+    avoid allocation of unnecessary resources. If the computation required to
+    decide if the reducer is full is expensive, consider caching it whenever
+    possible.
 
-    - If the producer's initialization is cheap, it should assume that reducer's
-      initialization is expensive and, if possible, avoid calling init on the
-      reducer.
+    - If the producer's initialization is cheap, it should assume that
+    reducer's initialization is expensive and, if possible, avoid calling init
+    on the reducer.
 
     - If the producer's initialization is expensive, it should assume that
-      reducer's initialization is cheap and, if possible, avoid it's own initialization.
+    reducer's initialization is cheap and, if possible, avoid it's own
+    initialization.
 
 
-      - Category
-      - Monoid
-      - Profunctor
-      - Strong (first, second)
-      - Choice (left, right)
-      - Alternative
-      - Bifunctor
-      - Monad
-      - Applicative
-      - Comonad
+    Consider adding explicit implementations for:
+      - [ ] Category
+      - [ ] Monoid
+      - [ ] Profunctor
+      - [ ] Strong (first, second)
+      - [ ] Choice (left, right)
+      - [ ] Alternative
+      - [ ] Bifunctor
+      - [ ] Comonad
+      - [ ] Functor
+      - [x] Applicative
 
-      - consider adding: lift, before or after
+    Consider adding:
+      - lift
+      - before
+      - after
       - await?
+      - or_else
+      - recover
+      - repeat
 
+    Is this possible?
       let* x = Sink.await in
       let* y = Sink.await in
       Sink.return (x + y)
-
-      race
-
-      or_else, recover
-      repeat
   *)
 
   type ('a, 'b) t = ('a, 'b) sink
+  (** Type for sinks that consume elements of type ['a] and, once done, produce
+      a value of type ['b]. *)
 
+  (** {1 Creating a sink}
 
-  val make
-    : init:(unit -> 's)
-    -> push:('s -> 'a -> 's)
-    -> ?full:('s -> bool)
-    -> stop:('s -> 'b)
-    -> unit
-    -> ('a, 'b) t
-  (** Creates a sink from a function that [init]ializes a state value, a
-      [step]ping function to update that state and a [stop] function that
-      produces the final result value. Optionally a [full] function can be passed
-      to decide when the sink should terminate early. *)
+    Implementing custom sinks is useful to create a collection of reusable
+    streaming consumers for your application.
 
-  val map : ('a -> 'b) -> ('c, 'a) t -> ('c, 'b) t
+    The following example demonstrates a sink that consumes all elements into a list:
 
-  val ( <@> ) : ('a -> 'b) -> ('c, 'a) t -> ('c, 'b) t
+    {[
+      let list_sink =
+        let init () = [] in
+        let push acc x = x :: acc in
+        let stop acc = List.rev acc in
+        Sink.make ~init ~push ~stop ()
+    ]}
 
-  val fill : 'a -> ('b, 'a) t
+    Alternatively, existing {!val:list}/{!val:array}/{!val:string}/{!val:queue}
+    sinks, or others listed below, can be used. *)
 
-  val ( <*> ) : ('a, 'b -> 'c) t -> ('a, 'b) t -> ('a, 'c) t
+  val fill : 'r -> ('a, 'r) t
+  (** [fill result] use [result] to fill the sink. This sink will not consume
+      any input and will immediately produce [result] when used. *)
 
-
-  (** {1 Combining sinks} *)
-
-  val both : ('a, 'r1) t -> ('a, 'r2) t -> ('a, 'r1 * 'r2) t
-  (** [both sink1 sink2] computes both [sink1] and [sink2] at the same time. *)
-
-  val distribute : ('a, 'r1) t -> ('a, 'r2) t -> ('a, 'r1 * 'r2) t
-  (** [distribute sink1 sink2] is similar to [both] but distributes the
-      consumed elements over [sink1] and [sink2] alternating in round robin
-      fashion. *)
-
-  val unzip : ('a, 'r1) t -> ('b, 'r2) t -> ('a * 'b, 'r1 * 'r2) t
-  (** [unzip sink1 sink2] is a sink that receives pairs, sending the first
-      element into [sink1] and the second into [sink2]. Both sinks are computed
-      at the same time and their results returned as an output pair. *)
-
-
-  (** {1 Sinks} *)
-
-  val full : ('a, unit) t
-  (** A full sink that will not consume any elements and will not produce any results. *)
-
-  val drain : ('a, unit) t
-  (** Consumes all elements producing nothing. Useful for triggering actions in
-      effectful streams. *)
-
-  val fold : ('b -> 'a -> 'b) -> 'b -> ('a, 'b) t
+  val fold : ('r -> 'a -> 'r) -> 'r -> ('a, 'r) t
   (** [fold f init] is a sink that reduces all input elements with the stepping
       function [f] starting with the accumulator value [init]. *)
+
+  val fold_while : ('r -> bool) -> ('r -> 'a -> 'r) -> 'r -> ('a, 'r) t
+  (** [fold_while full f init] is similar to [fold] but can terminate early if
+      [full] returns [true]. *)
+
+  val make
+    : init:(unit -> 'acc)
+    -> push:('acc -> 'a -> 'acc)
+    -> ?full:('acc -> bool)
+    -> stop:('acc -> 'r)
+    -> unit
+    -> ('a, 'r) t
+  (** Creates a sink from a function that [init]ializes a state value, a
+      [step]ping function to update that state and a [stop] function that
+      produces the final result value. Optionally a [full] function can be
+      passed to decide when the sink should terminate early.
+
+      {b Note:} The calls to [full] should be cheap as this function will be
+      called to avoid allocation of unnecessary resources. If the computation
+      required to decide if the sink is full is expensive, consider caching it
+      whenever possible. *)
+
+
+  (** {1 Basic sinks} *)
+
+  val full : ('a, unit) t
+  (** A full sink that will not consume any input and will not produce any
+      results. *)
 
   val is_empty : ('a, bool) t
   (** [is_empty] is [true] if the sink did not consume any elements and [false]
@@ -308,20 +373,26 @@ module Sink : sig
   val each : ('a -> unit) -> ('a, unit) t
   (** Applies an effectful action to all input elements producing nothing. *)
 
-  val length : ('a, int) t
+  val len : ('a, int) t
   (** Consumes and counts all input elements. *)
 
   val first : ('a, 'a option) t
-  (** The first input element. Equivalent to [nth 0]. *)
+  (** The first input element, or [None] if the sink did not receive enough
+      input.
+
+      Equivalent to [nth 0]. *)
 
   val last : ('a, 'a option) t
-  (** The last input element. *)
+  (** The last input element, or [None] if the sink did not receive enough
+      input. *)
 
   val nth : int -> ('a, 'a option) t
-  (** The n-th input element. *)
+  (** The n-th input element, or [None] if the sink did not receive enough
+      input. *)
 
-  val mean : (float, float) t
-  (** Computes a numerically stable arithmetic mean of all input elements. *)
+  val drain : ('a, unit) t
+  (** Consumes all elements producing nothing. Useful for triggering actions in
+      effectful streams. *)
 
 
   (** {1 Finding elements} *)
@@ -346,6 +417,9 @@ module Sink : sig
   (** Finds the maximum element in the sequence, using the given predicate as
       as the comparison between the input elements. *)
 
+
+  (** {1 Logical predicates} *)
+
   val all : where:('a -> bool) -> ('a, bool) t
   (** [all ~where:pred] is [true] if all input element satisfy [pred]. Will
       stop consuming elements when the first element that does not satisfy
@@ -356,8 +430,8 @@ module Sink : sig
       [pred]. Will stop consuming elements when such an element is found.
       Results in [false] for empty input. *)
 
-  val print : (string, unit) t
-  (** Prints all input string elements to standard output as lines. *)
+
+  (** {1 Data sinks} *)
 
   val list : ('a, 'a list) t
   (** Puts all input elements into a list. *)
@@ -371,17 +445,17 @@ module Sink : sig
   val queue : ('a, 'a Queue.t) t
   (** Puts all input elements into a queue. *)
 
-  val sum : (int, int) t
-  (** Adds all input integer values. *)
-
-  val product : (int, int) t
-  (** Product of input integer values. Stops if any input element is [0]. *)
-
   val string : (string, string) t
   (** Consumes and concatenates strings. *)
 
   val bytes : (bytes, bytes) t
   (** Consumes and concatenates bytes. *)
+
+
+  (** {1 IO sinks} *)
+
+  val print : (string, unit) t
+  (** Prints all input string elements to standard output as lines. *)
 
   val file : string -> (string, unit) t
   (** [file path] is a sink that writes input strings as lines into a file located at [path]. *)
@@ -393,16 +467,221 @@ module Sink : sig
   (** A sink that writes input strings as lines to STDERR. *)
 
 
+  (** {1 Numeric compuations} *)
+
+  val sum : (int, int) t
+  (** Adds all input integer values. *)
+
+  val product : (int, int) t
+  (** Product of input integer values. Stops if any input element is [0]. *)
+
+  val mean : (float, float) t
+  (** Computes a numerically stable arithmetic mean of all input elements. *)
+
+
+  (** {1 Combining sinks} *)
+
+  val zip : ('a, 'r1) t -> ('a, 'r2) t -> ('a, 'r1 * 'r2) t
+  (** [zip left right] computes both [left] and [right] at the same time
+      with the same input being sent to both sinks. The results of both sinks
+      are produced. *)
+
+  val zip_left : ('a, 'r) t -> ('a, _) t -> ('a, 'r) t
+  (** [zip_left left right] similar to {!val:zip}, but only produces the
+      result of the [left] sink. *)
+
+  val zip_right : ('a, _) t -> ('a, 'r) t -> ('a, 'r) t
+  (** [zip_left left right] similar to {!val:zip}, but only produces the
+      result of the [right] sink. *)
+
+  val zip_with : ('r1 -> 'r2 -> 'r) -> ('a, 'r1) t -> ('a, 'r2) t -> ('a, 'r) t
+  (** [zip_with f left right] similar to {!val:zip}, but applies an aggregation
+      function to results produced by [left] and [right]. *)
+
+  val (<&>) : ('a, 'r1) t -> ('a, 'r2) t -> ('a, 'r1 * 'r2) t
+  (** [left <&> right] is an operator version of [zip left right]. *)
+
+  val (<&) : ('a, 'r) t -> ('a, _) t -> ('a, 'r) t
+  (** [left <& right] is an operator version of [zip_left left right]. *)
+
+  val (&>) : ('a, _) t -> ('a, 'r) t -> ('a, 'r) t
+  (** [left &> right] is an operator version of [zip_right left right]. *)
+
+  val unzip : ('a, 'r1) t -> ('b, 'r2) t -> ('a * 'b, 'r1 * 'r2) t
+  (** [unzip left right] is a sink that receives pairs ['a * 'b], sending the
+      first element into [left] and the second into [right]. Both sinks are
+      computed at the same time and their results returned as an output pair.
+
+      The sink becomes full when either [left] or [right] get full. *)
+
+  val unzip_left : ('a, 'r) t -> ('b, _) t -> ('a * 'b, 'r) t
+  (** [unzip_left left right] is similar to {!val:unzip}, but only produces the
+      result of the [left] sink.
+
+      If [right] terminates first, [left] will be forced to terminate. *)
+
+  val unzip_right : ('a, _) t -> ('b, 'r) t -> ('a * 'b, 'r) t
+  (** [unzip_left left right] is similar to {!val:unzip}, but only produces the
+      result of the [right] sink.
+
+      If [left] terminates first, [right] will be forced to terminate. *)
+
+  val unzip_with : ('r1 -> 'r2 -> 'r) -> ('a, 'r1) t -> ('b, 'r2) t -> ('a * 'b, 'r) t
+  (** [unzip_with f left right] similar to {!val:unzip}, but applies an
+      aggregation function to results produced by [left] and [right]. *)
+
+  val (<*>) : ('a, 'r1) t -> ('b, 'r2) t -> ('a * 'b, 'r1 * 'r2) t
+  (** [left <*> right] is an operator version of [unzip left right]. *)
+
+  val (<* ) : ('a, 'r) t -> ('b, _) t -> ('a * 'b, 'r) t
+  (** [left <* right] is an operator version of [unzip_left left right]. *)
+
+  val ( *> ) : ('a, _) t -> ('b, 'r) t -> ('a * 'b, 'r) t
+  (** [left *> right] is an operator version of [unzip_right left right]. *)
+
+  val distribute : ('a, 'r1) t -> ('a, 'r2) t -> ('a, 'r1 * 'r2) t
+  (** [distribute left right] is similar to [zip] but distributes the
+      consumed elements over [left] and [right] alternating in a round robin
+      fashion. *)
+
+  (** Type for {!val:race} result values. *)
+  type ('a, 'b) race =
+    | Left of 'a
+    | Right of 'b
+    | Both of 'a * 'b
+
+  val race : ('a, 'r1) t -> ('a, 'r2) t -> ('a, ('r1, 'r2) race) t
+  (** [race left right] runs both [left] and [right] sinks at the same time
+      producing the result for the one that fills first.
+
+      If the sink is terminated prematurely, before either [left] or [right]
+      are filled, {{:#type-race.Both} [Both]} of their values are produced.
+
+      {4 Examples}
+
+      {[
+      let sink = Sink.(race (find ~where:(fun x -> x > 10)) (nth 8)) in
+      let result = Stream.of_list [1; 9; 0; 8; 30; 4] |> Stream.into sink in
+      assert (result = Sink.Left (Some 30))
+      ]} *)
+
+  val (<|>) : ('a, 'r1) t -> ('a, 'r2) t -> ('a, ('r1, 'r2) race) t
+  (** [left <|> right] is the operator version of [race left right]. *)
+
+  val seq : ('a, 'r1) t -> ('a, 'r2) t -> ('a, 'r1 * 'r2) t
+  (** [seq left right] runs [left] and then [right] sequentially producing both of their results.
+
+      If the resulting sink is stopped before [right] was started, it will be
+      forced to initialize and terminate. *)
+
+  val seq_left : ('a, 'r) t -> ('a, _) t -> ('a, 'r) t
+  (** [seq_left left right] is similar to [seq], but only produces the result
+      of the [left] sink. *)
+
+  val seq_right : ('a, _) t -> ('a, 'r) t -> ('a, 'r) t
+  (** [seq_right left right] is similar to [seq], but only produces the result
+      of the [right] sink. *)
+
+  val (<+>) : ('a, 'r1) t -> ('a, 'r2) t -> ('a, 'r1 * 'r2) t
+  (** [left <+> right] is an operator version of [seq left right]. *)
+
+  val (<+) : ('a, 'r) t -> ('a, _) t -> ('a, 'r) t
+  (** [left <+ right] is an operator version of [seq_left left right]. *)
+
+  val (+>) : ('a, _) t -> ('a, 'r) t -> ('a, 'r) t
+  (** [left +> right] is an operator version of [seq_right left right]. *)
+
+
+  (** {1 Mapping and filtering sinks} *)
+
+  val map : ('r1 -> 'r2) -> ('a, 'r1) t -> ('a, 'r2) t
+  (** [map f sink] is a sink [sink] with the result transformed with [f]. *)
+
+  val ( <@> ) : ('a -> 'b) -> ('c, 'a) t -> ('c, 'b) t
+  (** [f <@> sink] is the operator version of [map f sink]. *)
+
+  val premap : ('b -> 'a) -> ('a, 'r) t -> ('b, 'r) t
+  (** [premap f sink] is a sink that {e premaps} the input values.
+
+
+      {4 Examples}
+
+      If [sink] consumes integers, but we have an input with strings, we can
+      provide a conversion from strings to integers to [premap]:
+
+      {[
+      let sink = Sink.(premap int_of_string sum) in
+      let result = Stream.of_list ["1"; "2"; "3"] |> Stream.into sink in
+      assert (result = 6)
+      ]} *)
+
+  val prefilter : ('a -> bool) -> ('a, 'r) t -> ('a, 'r) t
+  (** [prefilter predicate sink] is a sink that filter the input value for
+      [sink]. *)
+
+
   (** {1 Resource management} *)
 
   val dispose : ('a, 'r) t -> 'r
-  (** Close the sink and produce the currently accumulated result. *)
+  (** Close the sink and produce the currently accumulated result. Any internal
+      state will be terminated. *)
 
 
+  (** {1 Syntax definitions}
+
+      In addition to using the sinks and operations defined above, it is
+      possible to create sinks with a convenient [(let)] notation.
+
+      A common example of a composed sink is the sink that computes the
+      arithmetic mean:
+
+      {[
+      let mean =
+        let open Sink.Syntax in
+        let+ total = Sink.sum
+        and+ count = Sink.len in
+        total / count
+      ]}
+
+      The resulting sink has type [(int, int) sink] and will only consume the
+      input once! *)
+
+  (** Module with syntax definitions for sinks. *)
   module Syntax : sig
-    val return : 'b -> ('a, 'b) t
-    val let__plus : ('c, 'a) t -> ('a -> 'b) -> ('c, 'b) t
-    val and__plus : ('a, 'b) t -> ('a, 'c) t -> ('a, 'b * 'c) t
+    val (let+) : ('c, 'a) t -> ('a -> 'b) -> ('c, 'b) t
+    val (and+) : ('a, 'b) t -> ('a, 'c) t -> ('a, 'b * 'c) t
+  end
+
+  (** {1 Interface implementations} *)
+
+  (** Module that implements the "Functor" interface. *)
+  module Functor : sig
+    type ('input, 'a) t = ('input, 'a) sink
+
+    val map : ('a -> 'b) -> ('input, 'a) t -> ('input, 'b) t
+  end
+
+  (** Module that implements the "Applicative" interface. *)
+  module Applicative : sig
+    type ('input, 'a) t = ('input, 'a) sink
+
+    val pure : 'a -> ('b, 'a) t
+
+    val ( <*> ) : ('a, 'b -> 'c) t -> ('a, 'b) t -> ('a, 'c) t
+    (** [f <*> sink] is a function application for functions contained in a sink.
+
+        This operator can be combined with {!val:(<@>)} to run multiple sinks at
+        the same time:
+
+        {[
+        let mean = Sink.((/) <@> sum <*> len)
+        ]}
+
+        Which is equivalent to the following version without operators:
+
+        {[
+        let mean = Sink.(map (fun (total, count) -> total / count) (both sum len))
+        ]} *)
   end
 end
 
@@ -410,37 +689,72 @@ end
 
 (** {1:flows Flows}
 
-    Flows are composable stream transformers.
+    Flows are decoupled transformers of values.
+
+    Flows define streaming transformation, filtering or groupping operations
+    that are fully disconnected from input and output. Their implementation
+    intercepts an internal folding function and modifies the input one value at
+    a time.
+
+    Flows are a great way to define decoupled transformations that can be used
+    with {!val:Stream.via}.
 
     A flow can be applied to a stream with {!val:Stream.via}:
 
     {[
-      Stream.range 10
+    # Stream.range 10 100
       |> Stream.via (Flow.map (fun x -> x + 1))
       |> Stream.into Sink.sum
+    - : int = 4995
     ]}
 
-    Flows can be composed to form pipelines:
+    Flows can also be composed to form a pipeline:
 
     {[
-      let flow = Flow.(map (fun x -> x + 1) >> filter (fun x -> x mod 2 = 0)) in
-      Stream.range 10
+    # let flow = Flow.(map (fun x -> x + 1) >> filter (fun x -> x mod 2 = 0)) in
+      Stream.range 10 100
       |> Stream.via flow
       |> Stream.into Sink.sum
-    ]}
-
-
-    *)
+    - : int = 2475
+    ]} *)
 
 (** Stream transformers that consume values of type ['a] and produce values of
     type ['b]. *)
 type ('a, 'b) flow
 
 
-(** Operations on flows and common flow instances. *)
+(** Module with definitions for flows.
+
+  Flows define streaming transformation, filtering or groupping operations
+  that are fully disconnected from input and output. Their implementation
+  intercepts an internal folding function and modifies the input one value at
+  a time.
+
+  Flows are a great way to define decoupled transformations that can be used
+  with {!val:Stream.via}.
+
+  A flow can be applied to a stream with {!val:Stream.via}:
+
+  {[
+  # Stream.range 10 100
+    |> Stream.via (Flow.map (fun x -> x + 1))
+    |> Stream.into Sink.sum
+  - : int = 4995
+  ]}
+
+  Flows can also be composed to form a pipeline:
+
+  {[
+  # let flow = Flow.(map (fun x -> x + 1) >> filter (fun x -> x mod 2 = 0)) in
+    Stream.range 10 100
+    |> Stream.via flow
+    |> Stream.into Sink.sum
+  - : int = 2475
+  ]} *)
 module Flow : sig
   type ('a, 'b) t = ('a, 'b) flow
 
+  (** {1 Transforming a flow} *)
 
   val filter : ('a -> bool) -> ('a, 'a) t
   (** A flow that includes only the elements that satisfy a predicate. *)
@@ -451,13 +765,18 @@ module Flow : sig
   val take : int -> ('a, 'a) t
   (** Take first [n] elements from the source and discard the rest. *)
 
+  (** {1 Buffering flow elements} *)
+
   val buffer : int -> ('a, 'a array) t
   (** Collects [n] elements into an array buffer. Once the buffer is full it is
       emmited as a stream item. *)
 
 
-  val into : ('a, 'r) sink -> ('a, 'r) t
-  (** Repeatedly processes incoming elements with a sink producing computed results.
+  (** {1 Flowing into a sink} *)
+
+  val through : ('a, 'r) sink -> ('a, 'r) t
+  (** [through sink] repeatedly processes incoming elements with [sink]
+      producing computed results.
 
       {b Note:} The provided sink might consume the whole input if it is
       infinite, or if the input terminates before filling the sink. *)
@@ -486,9 +805,11 @@ end
 
 (** {1:streams Streams}
 
-    Stream is a functional abstraction for incremental sequential processing of
-    elements. Streams can be easily and efficiently transformed and
-    concatenated.
+    Streams combine sources, sinks and flows into a flexible streaming toolkit.
+
+    Stream is a purely functional abstraction for incremental, push-based,
+    sequential processing of elements. Streams can be easily and efficiently
+    transformed and concatenated.
 
     Stream operations do not leak resources. This is guaranteed in the presence
     of early termination (when not all stream elements are consumed) or in case
@@ -498,9 +819,8 @@ end
     sinks} and {{:#flows} flows}. To create a stream that produces all elements
     from a source use {!val:Stream.from}, to consume a stream with a sink use
     {!val:Stream.into} and to transform stream elements with a flow use
-    {!val:Stream.via}.
-
-    {4 Examples}
+    {!val:Stream.via}. For more sophisticated pipelines that might have source
+    leftovers, {!val:Stream.run} can be used.
 
     A simple echo program that loops over standard input and prints every line
     to standard output until Ctrl-D is hit:
@@ -511,17 +831,46 @@ end
       hello
       world<Enter>
       world
-      <Ctrl+D>
+      <Ctrl+d>
       - : unit = ()
     ]} *)
 
 type 'a stream
-(** A stream of elements of type ['a]. *)
+(** Type for streams with elements of type ['a]. *)
 
 
+(** Module with defintions for streams.
+
+    Stream is a purely functional abstraction for incremental, push-based,
+    sequential processing of elements. Streams can be easily and efficiently
+    transformed and concatenated.
+
+    Stream operations do not leak resources. This is guaranteed in the presence
+    of early termination (when not all stream elements are consumed) or in case
+    of exceptions in the streaming pipeline.
+
+    Streams are built to be compatible with {{!module:Source} sources}, {{!module:Sink}
+    sinks} and {{!module:Flow} flows}. To create a stream that produces all elements
+    from a source use {!val:Stream.from}, to consume a stream with a sink use
+    {!val:Stream.into} and to transform stream elements with a flow use
+    {!val:Stream.via}. For more sophisticated pipelines that might have source
+    leftovers, {!val:run} can be used.
+
+    A simple echo program that loops over standard input and prints every line
+    to standard output until Ctrl-D is hit:
+
+    {[
+      # Stream.stdin |> Stream.stdout;;
+      hello<Enter>
+      hello
+      world<Enter>
+      world
+      <Ctrl+d>
+      - : unit = ()
+    ]} *)
 module Stream : sig
   type 'a t = 'a stream
-  (** A stream of elements of type ['a]. *)
+  (** Type for streams with elements of type ['a]. *)
 
   (*
 
@@ -559,34 +908,35 @@ module Stream : sig
   val triple : 'a -> 'a -> 'a -> 'a t
   (** [triple a b c] is a stream with elements: [a], [b] and [c]. *)
 
-  val of_list : 'a list -> 'a t
-  (** [of_list items] is a stream with all elements in the list [items]. *)
-
   val count : int -> int t
   (** [count n] is an infinite stream with integers starting from [n]. *)
 
   val range : ?by:int -> int -> int -> int t
   (** [range ~by:step n m] is a sequence of integers starting from [n] to
-      [m] (excluding [m]) incremented by [step]. *)
+      [m] (excluding [m]) incremented by [step]. The range is open on the right
+      side. *)
 
   val iota : int -> int t
   (** [iota n] is [range ~by:1 0 n], that is a range from [0] to [n]
       incremented by [1]. *)
 
-  val (--) : int -> int -> int t
-  (** [n -- m] is [range ~from:n m]. The range is open on the right side. *)
+  val (-<) : int -> int -> int t
+  (** [n -< m] is [range n m]. *)
 
-  val generate : int -> (int -> 'a) -> 'a t
-  (** [generate n f] generates a stream of length [n] mapping each index to an
+  val (--) : int -> int -> int t
+  (** [n -- m] is [range n (m - 1)]. *)
+
+  val generate : len:int -> (int -> 'a) -> 'a t
+  (** [generate ~len f] generates a stream of length [n] mapping each index to an
       element with [f]. *)
 
-  val repeat : ?n:int -> 'a -> 'a t
-  (** [repeat ~n x] produces a container by repeating [x] [n] times. If [n] is
-      omitted, [x] is repeated {e ad infinitum}. *)
+  val repeat : ?times:int -> 'a -> 'a t
+  (** [repeat ~times:n x] produces a stream by repeating [x] [n] times. If
+      [times] is omitted, [x] is repeated {e ad infinitum}. *)
 
-  val repeatedly : ?n:int -> (unit -> 'a) -> 'a t
-  (** [repeatedly ~n f] produces a container by repeatedly calling [f ()] [n]
-      times. If [n] is omitted, [f] is called {e ad infinitum}. *)
+  val repeatedly : ?times:int -> (unit -> 'a) -> 'a t
+  (** [repeatedly ~times:n f] produces a stream by repeatedly calling [f ()] [n]
+      times. If [times] is omitted, [f] is called {e ad infinitum}. *)
 
   val iterate : 'a -> ('a -> 'a) -> 'a t
   (** [iterate x f] is an infinite source where the first item is calculated by
@@ -601,8 +951,29 @@ module Stream : sig
   val yield  : 'a -> 'a t
   (** [yield x] is a stream with a single element [x]. *)
 
+  (** {1 Stream converters} *)
 
-  (** {1 Transformers} *)
+  val of_list : 'a list -> 'a t
+  (** [of_list items] is a stream with all elements in the list [items]. *)
+
+  val to_list : 'a t -> 'a list
+  (** [to_list stream] converts [stream] into a list. *)
+
+  val of_array : 'a array -> 'a t
+  (** [of_array items] is a stream with all elements in the array [items]. *)
+
+  val to_array : 'a t -> 'a array
+  (** [to_array stream] converts [stream] into an array. *)
+
+  val of_string : string -> char t
+  (** [of_string string] is a stream with all characters in [string]. *)
+
+  val to_string : char t -> string
+  (** [to_string stream] converts [stream] of characters into a string. *)
+
+
+
+  (** {1 Transformerming a stream} *)
 
   val map : ('a -> 'b) -> 'a t -> 'b t
   (** A stream with all elements transformed with a mapping function. *)
@@ -652,6 +1023,12 @@ module Stream : sig
   val (++) : 'a t -> 'a t -> 'a t
   (** [stream1 ++ stream2] is the infix operator version of [concat stream1 stream2]. *)
 
+  val append : 'a -> 'a t -> 'a t
+  (** [append x stream] adds the element [x] to the end of [stream]. *)
+
+  val prepend : 'a -> 'a t -> 'a t
+  (** [prepend x stream] adds the element [x] to the beginning of [stream]. *)
+
   val flatten : 'a t t -> 'a t
   (** Concatenates a stream of streams. *)
 
@@ -668,8 +1045,9 @@ module Stream : sig
       assert (duplicated = [1; 1; 2; 2; 3; 3])
       ]} *)
 
-  val cycle : 'a t -> 'a t
-  (** Repeat a collection cyclically, {e ad infinitum}. *)
+  val cycle : ?times:int -> 'a t -> 'a t
+  (** [cycle ~times:n stream] produces a stream by repeating all elements from
+      [stream] [n] times. If [times] is omitted, [x] is repeated {e ad infinitum}. *)
 
   (* TODO: These two can only work with sources. *)
   (* val zip : 'a t -> 'b source -> ('a * 'b) t *)
@@ -706,37 +1084,38 @@ module Stream : sig
       If the stream is infinite and the consumer accumulates the elements, the
       processing will not terminate, potentially resulting in a memory leak. *)
 
-  (* val fill : ('a, 'b) sink -> 'a t -> 'a t *)
-  (* val fill : ('a, 'b) sink -> 'a t -> 'b * 'a t option *)
-  (** [fill sink stream] is similar to [into] but, in addition to the result
-      value produced by [sink], will optionally return a leftover stream with
-      elements that were not consumed by [sink]. *)
-
-  val to_list : 'a t -> 'a list
-
-  val length : 'a t -> int
-  (** [length stream] counts the number of elements in [stream].
+  val len : 'a t -> int
+  (** [len stream] counts the number of elements in [stream].
 
      Will exhaust the stream during processing.
 
       {4 Examples}
 
       {[
-      # Stream.length (Stream.of_list ['a'; 'b'; 'c']);
+      # Stream.len (Stream.of_list ['a'; 'b'; 'c']);
       - : int = 3
       ]} *)
 
   val each : ('a -> unit) -> 'a t -> unit
+  (** [each f stream] applies an effectful function [f] to all elements of
+      [stream]. *)
 
   val fold : ('r -> 'a -> 'r) -> 'r -> 'a t -> 'r
+  (** [fold step init stream] reduces the values of [stream] with the [step]
+      function, starting with [init].
+
+      If the [step] function raises an exception, the stream will be properly
+      terminated. *)
 
   val is_empty : 'a t -> bool
+  (** [is_empty stream] is [true] if the stream has no elements and [false]
+      otherwise. This operations consumes the first elements of the stream. *)
 
   val first : 'a t -> 'a option
-  (** Return the first item in the stream. *)
+  (** Return the first element in the stream. *)
 
   val last : 'a t -> 'a option
-  (** Return the last item in the stream, in linear time. *)
+  (** Return the last element in the stream, in linear time. *)
 
   val drain : 'a t -> unit
 
@@ -747,12 +1126,20 @@ module Stream : sig
   (** {1 IO Streams} *)
 
   val file : string -> char t
+  (** [file path] is a stream of characters read from the file located at
+      [path].
+
+      The file is opened lazily only when the stream is consumed and will be
+      closed even if the stream processing terminates with an exception. *)
 
   val stdin : string t
+  (** The stream that reads lines from the standard input channel. *)
 
   val stdout : string t -> unit
+  (** The stream that writes lines to standard output channel. *)
 
   val stderr : string t -> unit
+  (** The stream that writes lines to standard error channel. *)
 
 
   (** {1 Adaptors}
@@ -766,7 +1153,7 @@ module Stream : sig
       {4 Examples}
 
       {[
-        # Stream.length (Stream.from (Source.list [0; 1; 2]))
+        # Stream.len (Stream.from (Source.list [0; 1; 2]))
         - : int = 3
       ]} *)
 
@@ -780,6 +1167,12 @@ module Stream : sig
         # Stream.into Sink.sum (Stream.of_list [0; 1; 2])
         - : int = 3
       ]} *)
+
+  (* val fill : ('a, 'b) sink -> 'a t -> 'a t *)
+  (* val fill : ('a, 'b) sink -> 'a t -> 'b * 'a t option *)
+  (** [fill sink stream] is similar to [into] but, in addition to the result
+      value produced by [sink], will optionally return a leftover stream with
+      elements that were not consumed by [sink]. *)
 
   val via : ('a, 'b) flow -> 'a stream -> 'b stream
   (** [via flow stream] is stream produced by transforming all elements of
@@ -813,37 +1206,41 @@ module Stream : sig
       {4 Examples}
 
       {[
-        # let source = Source.list ["1"; "2"; "3"] in
+      # let (x, leftover) =
+          let source = Source.list ["1"; "2"; "3"] in
           let flow = Flow.map int_of_string in
-          let (x, leftover) = Stream.run ~from:source ~via:flow ~into:Sink.head;;
-        val (x, leftover) : (int option * string source option) = (Some 1, <source>)
-        # Source.dispose leftover;;
+          Stream.run ~from:source ~via:flow ~into:Sink.first
+      val x : int option = Some 1
+      val leftover : string source option = Some <abstr>
+      # match leftover with
+        | Some source -> Source.dispose source
+        | None -> print_endline "No leftover"
+      - : unit = ()
       ]} *)
 
 
   (** {1 Syntax defintions}
 
-      Streams can be constructed by using custom let-binding syntax which is
-      similar to {{: https://en.wikipedia.org/wiki/List_comprehension} list
-      comprehensions}. The following example demonstrates this feature.
-
-      {4 Example}
+      Streams can be constructed with the let-binding syntax which is similar
+      to {{: https://en.wikipedia.org/wiki/List_comprehension} list
+      comprehensions}. The following example demonstrates this feature:
 
       {[
       open Stream.Syntax
 
       let items =
-        let* x = Stream.of_list [1; 2] in
-        let* y = Stream.of_list ['a'; 'b'] in
-        yield (x, y) in
-      assert (Strea.to_list items = [(1, 'a'); (1, 'b'); (2, 'a'); (2, 'b')])
+        let* n = Stream.range 1 3 in
+        let* c = Stream.of_list ['x'; 'y'] in
+        yield (n, c) in
+      assert (Strea.to_list items = [(1, 'x'); (1, 'y'); (2, 'x'); (2, 'y')])
       ]} *)
 
+  (** Module with syntax definitions for streams. *)
   module Syntax : sig
     val yield  : 'a -> 'a t
     (** [yield x] is a stream with a single element [x]. *)
 
-    val let__star : 'a t -> ('a -> 'b t) -> 'b t
+    val (let*) : 'a t -> ('a -> 'b t) -> 'b t
   end
 
 end

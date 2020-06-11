@@ -3,15 +3,8 @@
  (modules :standard \ Sh Collections)
  (public_name streaming)
  (libraries stdlib-shims)
- (preprocess future_syntax)
  (ocamlopt_flags -unbox-closures -O3))
 
 (documentation
  (package streaming))
 
-;(library
-;  (name Collections)
-;  (modules Collections)
-;  (public_name collections)
-;  (libraries stdlib-shims)
-;  (ocamlopt_flags -unbox-closures -O3))

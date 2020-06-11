@@ -120,8 +120,8 @@ let buffer n =
   { flow }
 
 
-let into (Sink k0) =
-  let flow (Sink k1) = 
+let through (Sink k0) =
+  let flow (Sink k1) =
     let acc0 = ref (k0.init ()) in
     let push acc1 x0 =
       if k0.full !acc0 then

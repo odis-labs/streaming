@@ -1,8 +1,0 @@
-<!DOCTYPE html>
-<html xmlns="http://www.w3.org/1999/xhtml"><head><title>tutorial (streaming.tutorial)</title><link rel="stylesheet" href="../odoc.css"/><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/><script src="../highlight.pack.js"></script><script>hljs.initHighlightingOnLoad();</script></head><body><div class="content"><header><nav><a href="index.html">Up</a> – <a href="index.html">streaming</a> &#x00BB; tutorial</nav><h1 id="streaming-tutorial"><a href="#streaming-tutorial" class="anchor"></a>Streaming tutorial</h1><p>Before you start using Streaming, make sure to follow <a href="#">installation instructions</a>.</p><pre><code class="ml">open Streaming</code></pre><div class="sidebar"><nav class="toc"><ul><li><a href="creating-a-stream">Creating a stream</a></li></ul></nav></div></header><h2 id="creating-a-stream"><a href="#creating-a-stream" class="anchor"></a>Creating a stream</h2><pre><code class="ml">(* A range of numbers *)
-let numbers = Stream.range 0 10
-
-(* Conversion form collections *)
-let list_items = Stream.of_list [1; 2; 3; 4; 5]
-let array_items = Stream.of_array [|&quot;Quick&quot;; &quot;brown&quot;; &quot;fox&quot;|]
-let chars = Stream.of_string &quot;Hello, World!&quot;</code></pre></div></body></html>

@@ -1,14 +1,14 @@
 open Streaming
 module T = Nanotest
 
-  
+
 let () =
   let verbose = true in
   let to_list src = List.rev (Source.fold (fun xs x -> x :: xs) [] src) in
 
   let t = T.test T.int ~verbose in
   T.group "Source.empty" [
-    t "empty length" ~actual:(Source.length Source.empty) ~expected:0;
+    t "empty len" ~actual:(Source.len Source.empty) ~expected:0;
   ];
 
   let t = T.test T.(list int) ~verbose in
@@ -27,9 +27,9 @@ let () =
 
   let t = T.test T.(list int) ~verbose in
   T.group "Source.generate" [
-    t "empty" ~actual:(to_list (Source.generate 0 (fun x -> x))) ~expected:[];
-    t "singleton" ~actual:(to_list (Source.generate 1 (fun x -> x))) ~expected:[0];
-    t "small" ~actual:(to_list (Source.generate 3 (fun x -> x))) ~expected:[0; 1; 2];
+    t "empty" ~actual:(to_list (Source.generate ~len:0 (fun x -> x))) ~expected:[];
+    t "singleton" ~actual:(to_list (Source.generate ~len:1 (fun x -> x))) ~expected:[0];
+    t "small" ~actual:(to_list (Source.generate ~len:3 (fun x -> x))) ~expected:[0; 1; 2];
   ];
 
   let t = T.test T.(list int) ~verbose in
@@ -64,7 +64,7 @@ let () =
   T.group "Source.zip" [
     t "empty" ~expected:[]
       ~actual:(to_list Source.(zip Source.empty Source.empty));
-    t "equal length" ~expected:[(0, 'x'); (1, 'y'); (2, 'z')]
+    t "equal len" ~expected:[(0, 'x'); (1, 'y'); (2, 'z')]
       ~actual:(to_list Source.(zip src1 src2));
     t "empty and small" ~expected:[]
       ~actual:(to_list Source.(zip src0 src2));
@@ -169,9 +169,9 @@ let () =
   ];
 
   let t = T.test T.int ~verbose in
-  T.group "Source.length" [
-    t "empty" ~expected:0 ~actual:(Source.length Source.empty);
-    t "small" ~expected:3 ~actual:(Source.length (Source.list [0; 1; 2]));
+  T.group "Source.len" [
+    t "empty" ~expected:0 ~actual:(Source.len Source.empty);
+    t "small" ~expected:3 ~actual:(Source.len (Source.list [0; 1; 2]));
   ];
 
   let t = T.test T.int ~verbose in
@@ -204,7 +204,7 @@ let () =
 
   let t = T.test ~verbose T.int in
   T.group "Source.dispose" [
-    t "init and stop" ~expected:2 ~actual:begin 
+    t "init and stop" ~expected:2 ~actual:begin
       let x = ref 0 in
       let src = Source.make ~init:(fun () -> incr x) ~stop:(fun () -> incr x)
         ~pull:(fun _ -> None) () in

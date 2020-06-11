@@ -1,105 +1,267 @@
 
 {0 Streaming}
 
-Streaming abstractions that transform, combine or reduce large amounts of data
-efficiently, in constant space and without leaking resources.
-
-- {{!module:Streaming} Reference}
-- {{: #} Tutorial}
-- {{: #} Examples}
-- {{: https://github.com/rizo/streaming} GitHub Project}
-
+Streaming abstractions that combine, transform and reduce large amounts of
+sequential data efficiently, in constant space and without leaking resources.
 
 {1 Overview}
 
-{e Streaming} provides stream producers ({{:#sources} sources}), stream
-consumers ({{:#sinks} sinks}) and stream transformers ({{:#flows} flows}). The
-decoupled streaming abstractions are exposed in a convenient way in the
-{!module:Stream} module.
+{e Streaming} uses composable stream producers (sources), consumers (sinks) and
+transformers (flows). The central model that abstracts over them is a
+{{!module:Streaming.Stream} [Stream]}.
 
 The following features are provided:
 
-- {b Low memory usage}: large or infinite streams can be computed in constant
-  and small space. {{:#todo} Buffering} is possible when needed.
-- {b Blazing fast}: all models were designed with performance at core. See
-  {{:#todo} benchmarks} for detailed comparison with other libraries.
-- {b Resource safety}: resources in streaming pipelines are allocated
-  lazily and released as early as possible.
-- {b Flexibility}: both push-based and pull-based models are implemented.
+- {b Constant memory usage}: large or infinite streams can be computed in constant
+  and small space. Buffering of the input is possible when needed.
+- {b Excellent performance}: all models were designed with performance at the
+  core. See {{:https://github.com/rizo/streams-bench} benchmarks} for detailed
+  comparison with other libraries.
+- {b Resource safety}: resources in effectful streaming pipelines are allocated
+  lazily and released as early as possible. Resources are guaranteed to
+  be terminated even when streams rise exceptions.
+- {b Flexibility}: both push-based and pull-based models are implemented to
+  allow efficient zipping, concatenation and other streaming operations.
+- {b Streaming notation}: build streams and sinks using a convenient
+  comprehension and applicative notations (see examples {{:#notations} below}).
+
+
+{1 Modules}
+
+{%html:
+
+<table class="xodoc">
+  <tr>
+    <td><a href="Streaming/Stream/index.html"><b><code>Stream</code></b></td>
+    <td>
+      Push-based streams with excellent overall performance, safe and lazy
+      resource management and a multitude of operations. Streams can be built
+      with <a
+      href="#using-stream-notation">comprehensions</a>.
+    </td>
+  </tr>
+  <tr>
+    <td><a href="Streaming/Source/index.html"><b><code>Source</code></b></td>
+    <td>
+      Pull-based producers of values with good performance, safe and lazy
+      resource management and zipping operations.
+    </td>
+  </tr>
+  <tr>
+    <td><a href="Streaming/Sink/index.html"><b><code>Sink</code></b></td>
+    <td>
+      Consumers of values with excellent performance, safe and lazy
+      resource management and flexible <a
+      href="Streaming/Sink/index.html/#combining-sinks">composition
+      operations</a>. Sinks are like first-class folds with early termination!
+    </td>
+  </tr>
+  <tr>
+    <td><a href="Streaming/Flow/index.html"><b><code>Flow</code></b></td>
+    <td>
+      Transformers of values that form composable streaming pipelines.
+      Excellent for defining source and sink independent value transformations.
+    </td>
+  </tr>
+</table>
+%}
+
+
+For more information on each module consult the entrypoint module
+{!module:Streaming}.
 
 
 {1 Quickstart}
 
 {2 Install using opam}
 
-The library can be installed with OPAM: [opam install streaming].
+The library can be installed with OPAM: [opam install streaming]. You can run
+[opam info streaming] to make sure that the library is installed.
 
 
 {2 Install using esy}
 
-Add ["@opam/streaming": "0.1"] to dependencies in your [package.json] file.
+Add ["@opam/streaming": "0.1"] to dependencies in your [package.json] file and
+install the dependencies with [esy install]. Run [esy ls-modules] to make sure
+that the library is installed for your project.
 
 
 {2 Use with dune}
 
-To start using {!module:Streaming} in your project add it to [libraries] in the
-[dune] file of your target.
+To start using {!module:Streaming} in your dune project add it to [libraries]
+in the [dune] file.
 
 {[
 (executable
-  (public_name main)
+  (public_name myexe)
   (libraries streaming))
 ]}
 
-
-{2 Use in utop}
-
-Fire up {{:#TODO} utop} and write:
+Open the entrypoint module in your code to start using Streams:
 
 {[
-#require "streaming";;
-open Streaming;;
-Stream.(stdin |> take_while ((<>) "stop") |> stdout);;
+open Streaming
 ]}
+
+
+{2 Use in the top-level}
+
+Fire up {{:https://github.com/ocaml-community/utop} utop} or {{:https://github.com/dbuenzli/down} down} and run:
+
+{[
+# #require "streaming";;
+# open Streaming;;
+# Stream.(stdin |> stdout);;
+We're streaming!<Enter>
+We're streaming!
+<Ctrl+d>
+- : unit = ()
+]}
+
+That's it! Scroll down to see some examples or jump into the {{!module:Streaming} API documentation}.
 
 
 {1 Examples}
 
-It is recommended to open the top-level {!module:Streaming} module in your
-projects. This will expose the main streaming primitives such as
-{!module:Streaming.Stream} and {!module:Streaming.Sink}.
+{3 Read lines from [STDIN]}
 
 {[
-open Streaming
-
-(* Print lines from stdin, ignoring empty input. *)
-let stdin_echo =
-  Stream.stdin
+# Stream.stdin
   |> Stream.filter ((<>) "")
   |> Stream.map (fun line -> "You wrote: " ^ line)
   |> Stream.each print_endline
 ]}
 
+{3 Using stream notation}
 
-{1 Concepts}
+{[
+# let items =
+    let* n = Stream.range 1 3 in
+    let* c = Stream.of_list ['x'; 'y'] in
+    yield (n, c)
 
-- {{!module:Streaming.Stream} {b Streams}} - push-based producers of values.
-- {{!module:Streaming.Source} {b Sources}} - pull-based incremental producers of values.
-- {{!module:Streaming.Sink} {b Sinks}} - push-based consumers of values.
-- {{!module:Streaming.Flow} {b Flows}} - push-based transformation operations on values.
+# Strea.to_list items
+- : (int * char) list = [(1, 'x'); (1, 'y'); (2, 'x'); (2, 'y')])
+]}
+
+{3 Using sink notation}
+Compute the arithmetic mean in a single iteration of the input.
+{[
+# let mean =
+    let open Sink.Syntax in
+    let+ total = Sink.sum
+    and+ count = Sink.length in
+    total / count
+
+# Stream.(iota 20 |> into mean)
+- : int = 9
+]}
+
+{1 Questions }
+
+{2 When should I use [streaming]?}
+
+[streaming] is a general-purpose streaming library with abstractions meant to
+be used as a drop-in replacement for concrete sequential data-structures such
+as lists. It is always a good idea to use a streaming model if you need
+sequential access to data. For very small collections that do not need to be
+processed multiple times, using lists is adequate. In all other situations,
+streams are significantly better in terms of performance and composition.
+
+Streaming abstractions are an excellent choice for stateful producers and
+consumers that require precise resource management. Consuming elements
+from a file or a database handler with streams is significantly safer. All
+models in [streaming] are lazy (they will only initialise resources when
+needed) and support prompt termination (the resources will be terminate
+immediately when they are no longer needed). This is guaranteed even when
+streaming pipelines raise exceptions.
+
+{2 How fast are Streams compared to other streaming models?}
+
+In short, very fast. The {!module:Streaming.Stream} module was designed to
+improve the most efficient iteration model currently available for OCaml, which
+is the so called "internal iterator" with the type [('a -> unit) -> unit]. This
+iterator is related to the commonly available "iter" functions in the standard
+library.
+
+Streams are a variant of internal iterators that add support for resource
+safety, early termination and avoid the need for mutations and exceptions in
+the combinators. In addition to that, they are very faster in most situations.
+See {{:https://github.com/rizo/streams-bench} benchmarks} for detailed
+comparison of different streaming models.
+
+{2 What's the difference between Sources and Streams?}
+
+Both sources and streams produce values. The main difference is flow control:
+with sources, consumers of the elements are in charge of control; while with
+streams, it's the producers who drives the iteration. This means that sources
+should be used for situations where the elements are requested on-demand, while
+streams are best suited for "reactive" inputs.
+
+In general, streams offer better performance than sources for the most common
+operations (including concatenation) and offer
+{{:Streaming/Stream/index.html#adaptors} integration} with sinks and
+flows. Sources are easier to create and support
+{{:Streaming/Source/index.html#zipping-sources} zipping}.
+
+It is recommmended to use sources to define decoupled producers that can be
+consumed with streams.
+
+{2 Why are all streaming types in this library abstract?}
+
+Even though the core types in streaming are very simple, stable and have many
+nice properties, it is possible that the types might change in the future to
+support new functionality such as backpressure and concurrency. To avoid
+breaking changes, and until the library reaches the 1.0 milestone, the types are
+going to be abstract.
+
+If you have a use-case that requires access to the internal type, please
+{{:https://github.com/odis-labs/streaming/issues/new} open an issue}.
+
+
+{2 How can the net amount of entropy of the universe be massively decreased?}
+
+{%html: <details style="cursor: pointer"><summary>AC: ...</summary> %}
+{[
+let answer () =
+  let x = "84726982693273833265833289698432737883857070736773697" ^
+          "8843268658465327079823265327769657873787170857632657883876982
+  What if there was no space and time?" in
+  let open Format in let (%^) = printf in
+  let open Streaming in let open Stream in
+  let (%)=fun f g x->f (g x) and
+  (|/-)=(%^)"\027[1m\027[41m";"\\|/-"in let (//) x = (|/-)
+    |> of_string
+    |> interpose '\b' |> append '\b'
+    |> cycle ~times:(Random.int 10)
+    |> append x
+    |> each (fun c -> "%c%!" %^ (Unix.sleepf 0.003; c)) in
+  from @@ (let pull i =
+      if i >= 114 then None
+      else Some (String.sub x i 2, i + 2)
+    in Source.make ~init:(fun () -> 0) ~pull ())
+  |> via (Flow.map (char_of_int%int_of_string))
+  |> into (Sink.each (//)); (%^) "\027[0m"
+]}
+{%html: </details> %}
 
 
 {1 Troubleshooting}
 
-{3 Configuration}
-
-- [Error: Unbound module Streaming] - the library was not loaded into the
-  environment. See the {{:#quickstart} Quickstart} section for more
-  information.
-- Incorrect [Stream] module - if you forget to open [Streaming] your might
+- {b Incorrect [Stream] module} - if you forget to open [Streaming] you might
   start using the [Stream] module from the standard library. This will result
   in [Unbound value] and type mismatch errors.
-- My stream pipeline never terminates - this indicates that one of your
-  producers or transformers produces an infinite stream.
+- {b My stream pipeline never terminates} - this indicates that one of your
+  producers or transformers produces an infinite stream. Make sure that you are
+  limiting the stream input with operations such as
+  {!val:Streaming.Stream.take} or {!val:Streaming.Stream.drop}.
 
+{1 Acknowledgements}
 
+This library is based on ideas found in other libraries and research projects
+such as: Haskell's {{:https://github.com/Gabriel439/Haskell-Pipes-Library}
+Pipes } and {{:https://github.com/Gabriel439/Haskell-Foldl-Library} Foldl}
+libraries, Scala's {{:https://zio.dev} ZIO Streams}, Clojure's
+{{:https://clojure.org/reference/transducers} Transducers} and the
+{{:http://okmij.org/ftp/Streams.html} Iteratees} streaming model by Oleg
+Kiselyov.

@@ -4,7 +4,7 @@ let wc_l path =
   path
   |> Stream.file
   |> Stream.split ~by:(fun x -> x = '\n')
-  |> Stream.length
+  |> Stream.len
 
 
 let baseline_rec path =
@@ -15,17 +15,6 @@ let baseline_rec path =
     | _ -> loop n
     | exception End_of_file -> n in
   loop 0
-
-
-let baseline_mut path =
-  let ic = open_in path in
-  let n = ref 0 in
-  try
-    while true do
-      if input_char ic = '\n' then incr n
-    done;
-    !n
-  with End_of_file -> !n
 
 
 let () =

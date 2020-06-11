@@ -57,11 +57,31 @@ let into sink this =
   this.stream sink
 
 
+(* Conv *)
+
+let to_list stream = into Sink.list stream
+
+let of_list xs =
+  let stream (Sink k) =
+    let rec loop s r =
+      if k.full r then r
+      else match s with
+        | [] -> r
+        | x :: s' -> loop s' (k.push r x) in
+    bracket (loop xs) ~init:k.init ~stop:k.stop in
+  { stream }
+
+
+let to_array stream = into Sink.array stream
+
+let of_array xs = from (Source.array xs)
+
+let to_string stream = into Sink.(premap (String.make 1) string) stream
+
+let of_string xs = from (Source.string xs)
+
 
 (* Sinks *)
-
-let to_list stream =
-  into Sink.list stream
 
 let each f =
   into (Sink.each f)
@@ -72,8 +92,8 @@ let fold f z =
 let is_empty stream =
   into Sink.is_empty stream
 
-let length stream =
-  into Sink.length stream
+let len stream =
+  into Sink.len stream
 
 let first stream =
   into Sink.first stream
@@ -108,22 +128,12 @@ let triple x1 x2 x3 =
 
 
 let unfold s0 pull =
-  from (Source.unfold s0 pull) 
+  from (Source.unfold s0 pull)
 
 
-let generate n f =
-  from (Source.generate n f) 
+let generate ~len f =
+  from (Source.generate ~len f)
 
-
-let of_list xs =
-  let stream (Sink k) =
-    let rec loop s r =
-      if k.full r then r
-      else match s with
-        | [] -> r
-        | x :: s' -> loop s' (k.push r x) in
-    bracket (loop xs) ~init:k.init ~stop:k.stop in
-  { stream }
 
 
 let count n =
@@ -145,10 +155,12 @@ let range ?by:(step=1) n m =
 let iota n =
   range 0 n
 
-let (--) n m = range n m
+let (-<) n m = range n m
+
+let (--) n m = range n (m - 1)
 
 
-let repeat ?n x =
+let repeat ?times:n x =
   let stream (Sink k) =
     match n with
     | None ->
@@ -164,7 +176,7 @@ let repeat ?n x =
   { stream }
 
 
-let repeatedly ?n f =
+let repeatedly ?times:n f =
   let stream (Sink k) =
     match n with
     | None ->
@@ -204,15 +216,26 @@ let concat this that =
 let (++) = concat
 
 
+let append x stream =
+  concat stream (single x)
+
+let prepend x stream =
+  concat (single x) stream
+
+
 let flatten nested =
   fold concat empty nested
 
 
-let cycle this =
+let cycle ?times:(n = -1) this =
+  if n = 0 then empty else
+  if n = 1 then this else
+  let i = ref 1 in
   let stream (Sink k) =
     let rec stop r =
-      if k.full r then k.stop r else
-      this.stream (Sink {k with init = (fun () -> r); stop })
+      if k.full r || !i = n then k.stop r else
+      (incr i;
+       this.stream (Sink {k with init = (fun () -> r); stop }))
     in
     this.stream (Sink { k with stop }) in
   { stream }
@@ -234,7 +257,7 @@ let interpose sep self =
     let push acc x =
       if !started then
         let acc = k.push acc sep in
-        if k.full acc then acc 
+        if k.full acc then acc
         else k.push acc x
       else begin
         started := true;
@@ -285,7 +308,7 @@ let indexed self =
       let acc' = k.push acc (!i, x) in
       incr i; acc' in
     self.stream (Sink { k with push })
-  in 
+  in
   { stream }
 
 
@@ -383,6 +406,6 @@ let yield x = single x
 module Syntax = struct
   let yield x = yield x
 
-  let let__star t f = flat_map f t
+  let (let*) t f = flat_map f t
 end
 

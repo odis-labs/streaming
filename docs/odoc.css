@@ -21,6 +21,7 @@ html, body, div, span, applet, object, iframe, h1, h2, h3, h4, h5, h6, p, blockq
   background: transparent;
 }
 
+/* Tables */
 table {
   border-collapse: collapse;
   border-spacing: 0;
@@ -248,7 +249,6 @@ pre {
 p code, li code {
   background-color: rgba(27,31,35,.02);
   border: 1px solid rgba(27,31,35,.05);
-  color: #0d2b3e;
   border-radius: 3px;
   padding: 0 0.5ex;
   /* font-size: 0.938em; */
@@ -274,6 +274,7 @@ pre code {
 /* Module member specification */
 
 .spec:not(.include), .spec.include details summary {
+  font-weight: 500;
   background-color: #f6f8fa;
   border-radius: 3px;
   border-left: 4px solid #5c9cf5;
@@ -300,7 +301,7 @@ dt.spec.value span.name {
 }
 
 dl, div.spec, .doc, aside {
-  margin-bottom: 20px;
+  margin-bottom: 25px;
 }
 
 dl > dd {
@@ -648,10 +649,15 @@ h1+.modules, h1+.sel {
   margin-bottom: 0.3em;
 }
 
+.toc ul ul {
+  list-style-type: disc;
+  list-style-position: inside;
+}
 .toc ul li li {
-  border-left: 1px solid #ccc;
-  margin-left: 5px;
-  padding-left: 12px;
+  position: relative;
+  /* border-left: 1px solid #ccc; */
+  padding-left: 18px;
+  text-indent: -15px;
 }
 
 /* Mobile adjustements. */
@@ -760,6 +766,26 @@ h1+.modules, h1+.sel {
 .hljs-link {
   text-decoration: underline;
 }
+
+
+/* Extended non-official definitions */
+
+table.xodoc th,
+table.xodoc td {
+  text-align: left;
+  vertical-align: top;
+  padding-top: 0.4em;
+  padding-bottom: 0.4em;
+}
+
+table.xodoc td + td {
+  padding-left: 0.8em;
+}
+
+table.xodoc tr + tr {
+  border-top: 1px solid rgba(27,31,35,.1);
+}
+
 
 /*---------------------------------------------------------------------------
    Copyright (c) 2016 The odoc contributors

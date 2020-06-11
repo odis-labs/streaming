@@ -20,7 +20,7 @@ let iterate x f =
   unfold x (fun x -> Some (x, f x))
 
 
-let make ~init ~pull ~stop () =
+let make ~init ~pull ?(stop = ignore) () =
   Source { init; pull; stop }
 
 
@@ -29,6 +29,13 @@ let list l =
     | []    -> None
     | x::xs -> Some (x, xs) in
   Source { init = (fun () -> l); pull; stop = (fun _ -> ()) }
+
+let seq s =
+  let pull s =
+    match s () with
+    | Seq.Nil   -> None
+    | Seq.Cons (x, rest) -> Some (x, rest) in
+  Source { init = (fun () -> s); pull; stop = (fun _ -> ()) }
 
 
 let array a =
@@ -83,7 +90,7 @@ let two a b =
 let three a b c =
   list [a; b; c]
 
-let generate n f =
+let generate ~len:n f =
   let pull i =
     if i >= n then None
     else Some (f i, i + 1) in
@@ -186,7 +193,7 @@ let fold f r0 (Source src) =
     | None -> r
     | Some (a, s') -> loop (f r a) s' in
   let s0 = src.init () in
-  try 
+  try
     let r = loop r0 s0 in
     src.stop s0;
     r
@@ -195,7 +202,7 @@ let fold f r0 (Source src) =
     raise exn
 
 
-let length src =
+let len src =
   fold (fun count _ -> count + 1) 0 src
 
 
@@ -205,7 +212,7 @@ let each f (Source src) =
     | None -> ()
     | Some (a, s') -> f a; loop s' in
   let s0 = src.init () in
-  try 
+  try
     loop s0;
     src.stop s0
   with exn ->

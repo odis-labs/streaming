@@ -15,46 +15,73 @@ let make ~init ~push ?(full=fun _ -> false) ~stop () =
   Sink { init; push; full; stop }
 
 
-module Functor = struct
-  (* type ('a, 'b) t = ('a, 'b) sink *)
+let fill b =
+  Sink {
+    init = (fun () -> ());
+    push = (fun () _ -> ());
+    full = (fun () -> true);
+    stop = (fun () -> b)
+  }
 
-  let map f (Sink k) =
-    Sink { k with stop = (fun x -> f (k.stop x)) }
 
-end
+let map f (Sink k) =
+  Sink { k with stop = (fun x -> f (k.stop x)) }
 
-include Functor
+
 let (<@>) = map
 
 
-module Applicative = struct
-  (* type ('a, 'b) t = ('a, 'b) sink *)
+let premap f (Sink k) =
+  Sink { k with push = (fun acc x -> k.push acc (f x)) }
 
-  let pure b =
-    Sink {
-      init = (fun () -> ());
-      push = (fun () _ -> ());
-      full = (fun () -> true);
-      stop = (fun () -> b)
-    }
 
-  let (<*>) (Sink l) (Sink r) =
-    let init () = (l.init (), r.init ()) in
-    let push (l_acc, r_acc) x = (l.push l_acc x, r.push r_acc x) in
-    let full (l_acc, r_acc) = (l.full l_acc || r.full r_acc) in
-    let stop (l_acc, r_acc) = l.stop l_acc (r.stop r_acc) in
-    Sink { init; push; full; stop }
-end
+let prefilter f (Sink k) =
+  Sink { k with push = (fun acc x -> if f x then k.push acc x else acc ) }
 
-include Applicative
-let fill = pure
 
-let both (Sink l) (Sink r) =
+let zip (Sink l) (Sink r) =
   let init () = (l.init (), r.init ()) in
   let push (l_acc, r_acc) x = (l.push l_acc x, r.push r_acc x) in
   let full (l_acc, r_acc) = (l.full l_acc || r.full r_acc) in
   let stop (l_acc, r_acc) = (l.stop l_acc, r.stop r_acc) in
   Sink { init; push; full; stop }
+
+
+let zip_left (Sink l) (Sink r) =
+  let init () = (l.init (), r.init ()) in
+  let push (l_acc, r_acc) x = (l.push l_acc x, r.push r_acc x) in
+  let full (l_acc, r_acc) = (l.full l_acc || r.full r_acc) in
+  let stop (l_acc, r_acc) =
+    let l = l.stop l_acc in
+    let _r = r.stop r_acc in
+    l in
+  Sink { init; push; full; stop }
+
+
+let zip_right (Sink l) (Sink r) =
+  let init () = (l.init (), r.init ()) in
+  let push (l_acc, r_acc) x = (l.push l_acc x, r.push r_acc x) in
+  let full (l_acc, r_acc) = (l.full l_acc || r.full r_acc) in
+  let stop (l_acc, r_acc) =
+    let _l = l.stop l_acc in
+    let r = r.stop r_acc in
+    r in
+  Sink { init; push; full; stop }
+
+
+let zip_with f (Sink l) (Sink r) =
+  let init () = (l.init (), r.init ()) in
+  let push (l_acc, r_acc) x = (l.push l_acc x, r.push r_acc x) in
+  let full (l_acc, r_acc) = (l.full l_acc || r.full r_acc) in
+  let stop (l_acc, r_acc) =
+    let l = l.stop l_acc in
+    let r = r.stop r_acc in
+    f l r in
+  Sink { init; push; full; stop }
+
+let (<&>) = zip
+let (<& ) = zip_left
+let ( &>) = zip_right
 
 
 let unzip (Sink l) (Sink r) =
@@ -64,6 +91,42 @@ let unzip (Sink l) (Sink r) =
   let stop (l_acc, r_acc) = (l.stop l_acc, r.stop r_acc) in
   Sink { init; push; full; stop }
 
+let unzip_left (Sink l) (Sink r) =
+  let init () = (l.init (), r.init ()) in
+  let push (l_acc, r_acc) (x, y) = (l.push l_acc x, r.push r_acc y) in
+  let full (l_acc, r_acc) = (l.full l_acc || r.full r_acc) in
+  let stop (l_acc, r_acc) =
+    let l = l.stop l_acc in
+    let _r = r.stop r_acc in
+    l in
+  Sink { init; push; full; stop }
+
+
+let unzip_right (Sink l) (Sink r) =
+  let init () = (l.init (), r.init ()) in
+  let push (l_acc, r_acc) (x, y) = (l.push l_acc x, r.push r_acc y) in
+  let full (l_acc, r_acc) = (l.full l_acc || r.full r_acc) in
+  let stop (l_acc, r_acc) =
+    let _l = l.stop l_acc in
+    let r = r.stop r_acc in
+    r in
+  Sink { init; push; full; stop }
+
+
+let unzip_with f (Sink l) (Sink r) =
+  let init () = (l.init (), r.init ()) in
+  let push (l_acc, r_acc) (x, y) = (l.push l_acc x, r.push r_acc y) in
+  let full (l_acc, r_acc) = (l.full l_acc || r.full r_acc) in
+  let stop (l_acc, r_acc) =
+    let l = l.stop l_acc in
+    let r = r.stop r_acc in
+    f l r in
+  Sink { init; push; full; stop }
+
+
+let (<*>) = unzip
+let (<* ) = unzip_left
+let ( *>) = unzip_right
 
 let distribute (Sink l) (Sink r) =
   let init () = (l.init (), r.init (), true) in
@@ -75,11 +138,155 @@ let distribute (Sink l) (Sink r) =
   Sink { init; push; full; stop }
 
 
+type ('a, 'b) race =
+  | Left of 'a
+  | Right of 'b
+  | Both of 'a * 'b
+
+let race (Sink l) (Sink r) =
+  let init () = Both (l.init (), r.init ()) in
+  let push state x =
+    match state with
+    | Both (l_acc, r_acc) ->
+      let l_acc' = l.push l_acc x in
+      let r_acc' = r.push r_acc x in
+      if l.full l_acc' then Left  l_acc' else
+      if r.full r_acc' then Right r_acc' else
+        Both (l_acc', r_acc')
+    | _ ->
+        invalid_arg "Streaming.Sink.race: one of the sinks is already filled" in
+  let full = function Both _ -> false | _ -> true in
+  let stop = function
+    | Left  l_acc -> Left (l.stop l_acc)
+    | Right r_acc -> Right (r.stop r_acc)
+    | Both (l_acc, r_acc) -> Both (l.stop l_acc, r.stop r_acc)
+  in
+  Sink { init; push; full; stop }
+
+let (<|>) = race
+
+
+let seq (Sink l) (Sink r) =
+  let init () = `L (l.init ()) in
+  let push state x =
+    match state with
+    | `L l_acc ->
+      let l_acc' = l.push l_acc x in
+      if l.full l_acc'
+      then `R (l.stop l_acc', r.init ())
+      else `L l_acc
+    | `R (l_r, r_acc) -> `R (l_r, r.push r_acc x) in
+  let full = function
+    | `L l_acc -> l.full l_acc
+    | `R (_, r_acc) -> r.full r_acc in
+  let stop = function
+    | `L l_acc ->
+      let l_r = l.stop l_acc in
+      let r_r = r.stop (r.init ()) in
+      (l_r, r_r)
+    | `R (l_r, r_acc) ->
+      let r_r = r.stop r_acc in
+      (l_r, r_r) in
+  Sink { init; push; full; stop }
+
+
+let seq_left (Sink l) (Sink r) =
+  let init () = `L (l.init ()) in
+  let push state x =
+    match state with
+    | `L l_acc ->
+      let l_acc' = l.push l_acc x in
+      if l.full l_acc'
+      then `R (l.stop l_acc', r.init ())
+      else `L l_acc
+    | `R (l_r, r_acc) -> `R (l_r, r.push r_acc x) in
+  let full = function
+    | `L l_acc -> l.full l_acc
+    | `R (_, r_acc) -> r.full r_acc in
+  let stop = function
+    | `L l_acc -> l.stop l_acc
+    | `R (l_r, r_acc) ->
+      let _r_r = r.stop r_acc in
+      l_r in
+  Sink { init; push; full; stop }
+
+
+let seq_right (Sink l) (Sink r) =
+  let init () = `L (l.init ()) in
+  let push state x =
+    match state with
+    | `L l_acc ->
+      let l_acc' = l.push l_acc x in
+      if l.full l_acc'
+      then (ignore (l.stop l_acc'); `R (r.init ()))
+      else `L l_acc
+    | `R r_acc -> `R (r.push r_acc x) in
+  let full = function
+    | `L l_acc -> l.full l_acc
+    | `R r_acc -> r.full r_acc in
+  let stop = function
+    | `L l_acc ->
+      ignore (l.stop l_acc);
+      r.stop (r.init ())
+    | `R r_acc -> r.stop r_acc in
+  Sink { init; push; full; stop }
+
+let (<+>) = seq
+let (<+ ) = seq_left
+let ( +>) = seq_right
+
+
+type ('top, 'a, 'b) flat_map =
+  | Flat_map_top : 'top -> ('top, 'a, 'b) flat_map
+  | Flat_map_sub : {
+    init: 'sub;
+    push: 'sub -> 'a -> 'sub;
+    full: 'sub -> bool;
+    stop: 'sub -> 'b;
+  } -> ('top, 'a, 'b) flat_map
+
+
+let _flat_map f (Sink top) =
+  let init () = Flat_map_top (top.init ()) in
+  let push s x =
+    match s with
+    | Flat_map_top acc ->
+      let acc' = top.push acc x in
+      if top.full acc' then
+        let r = top.stop acc' in
+        let Sink sub = f r in
+        Flat_map_sub {
+          init = sub.init ();
+          push = sub.push;
+          full = sub.full;
+          stop = sub.stop;
+        }
+      else
+        Flat_map_top acc'
+    | Flat_map_sub sub -> Flat_map_sub { sub with init = sub.push sub.init x } in
+  let full = function
+    | Flat_map_top acc -> top.full acc
+    | Flat_map_sub sub -> sub.full sub.init in
+  let stop = function
+    | Flat_map_top acc -> top.stop acc (* XXX: This constrains the type to 'a. *)
+    | Flat_map_sub sub -> sub.stop sub.init in
+  Sink { init; push; full; stop }
+
+
+
 let fold f z =
   Sink {
     init = (fun () -> z);
     push = f;
     full = (fun _ -> false);
+    stop = (fun r -> r);
+  }
+
+let fold_while full f z =
+  Sink {
+    init = (fun () -> z);
+    push = f;
+    full = full;
     stop = (fun r -> r);
   }
 
@@ -108,7 +315,7 @@ let each f =
     stop = (fun () -> ());
   }
 
-let length =
+let len =
   Sink {
     init = (fun () -> 0);
     push = (fun acc _ -> acc + 1);
@@ -388,10 +595,29 @@ let dispose (Sink snk) =
 
 
 module Syntax = struct
-  let return = Applicative.pure
-
-  let let__plus f t = Functor.map t f
-  let and__plus a b = both a b
+  let (let+) f t = map t f
+  let (and+) a b = zip a b
 end
 
+
+
+module Functor = struct
+  type ('a, 'b) t = ('a, 'b) sink
+
+  let map  = map
+end
+
+
+module Applicative = struct
+  type ('a, 'b) t = ('a, 'b) sink
+
+  let pure = fill
+
+  let (<*>) (Sink l) (Sink r) =
+    let init () = (l.init (), r.init ()) in
+    let push (l_acc, r_acc) x = (l.push l_acc x, r.push r_acc x) in
+    let full (l_acc, r_acc) = (l.full l_acc || r.full r_acc) in
+    let stop (l_acc, r_acc) = l.stop l_acc (r.stop r_acc) in
+    Sink { init; push; full; stop }
+end
 
