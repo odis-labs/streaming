@@ -11,8 +11,6 @@ type ('a, 'b) sink =
   Sink : { 
     init : unit -> 's;
     push : 's -> 'a -> 's;
-    (* Could be potentially extended to support finer grained back pressure
-     * control. Instead of a bool we could use [`full | `more | `wait]. *)
     full : 's -> bool;
     stop : 's -> 'b;
   } -> ('a, 'b) sink
