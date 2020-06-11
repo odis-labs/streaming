@@ -1,6 +1,5 @@
 (library
  (name Streaming)
- (modules :standard \ Sh Collections)
  (public_name streaming)
  (libraries stdlib-shims)
  (ocamlopt_flags -unbox-closures -O3))
