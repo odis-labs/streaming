@@ -26,7 +26,7 @@ The following features are provided:
 Read the [library documenation](https://odis-labs.github.io/streaming) for more details.
 
 
-# Acknowledgements
+## Acknowledgements
 
 This library is based on ideas found in other libraries and research projects
 such as: Haskell's [Pipes](https://github.com/Gabriel439/Haskell-Pipes-Library)
