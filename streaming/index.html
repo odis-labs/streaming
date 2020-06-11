@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"><head><title>index (streaming.index)</title><link rel="stylesheet" href="../odoc.css"/><meta charset="utf-8"/><meta name="generator" content="odoc 1.5.0"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/><script src="../highlight.pack.js"></script><script>hljs.initHighlightingOnLoad();</script></head><body><div class="content"><header><nav><a href="../index.html">Up</a> – streaming</nav><h1 id="streaming"><a href="#streaming" class="anchor"></a>Streaming</h1><p>Streaming abstractions that combine, transform and reduce large amounts of sequential data efficiently, in constant space and without leaking resources.</p><nav class="toc"><ul><li><a href="#overview">Overview</a></li><li><a href="#modules">Modules</a></li><li><a href="#quickstart">Quickstart</a><ul><li><a href="#install-using-opam">Install using opam</a></li><li><a href="#install-using-esy">Install using esy</a></li><li><a href="#use-with-dune">Use with dune</a></li><li><a href="#use-in-the-top-level">Use in the top-level</a></li></ul></li><li><a href="#examples">Examples</a><ul><li><a href="#read-lines-from-stdin">Read lines from <code>STDIN</code></a></li><li><a href="#using-stream-notation">Using stream notation</a></li><li><a href="#using-sink-notation">Using sink notation</a></li></ul></li><li><a href="#resource-handling">Resource handling</a><ul><li><a href="#examples">Examples</a></li><li><a href="#limitations">Limitations</a></li></ul></li><li><a href="#questions">Questions</a><ul><li><a href="#when-should-i-use-streaming?">When should I use <code>streaming</code>?</a></li><li><a href="#how-fast-are-streams-compared-to-other-streaming-models?">How fast are Streams compared to other streaming models?</a></li><li><a href="#what's-the-difference-between-sources-and-streams?">What's the difference between Sources and Streams?</a></li><li><a href="#why-are-all-streaming-types-in-this-library-abstract?">Why are all streaming types in this library abstract?</a></li><li><a href="#how-can-the-net-amount-of-entropy-of-the-universe-be-massively-decreased?">How can the net amount of entropy of the universe be massively decreased?</a></li></ul></li><li><a href="#troubleshooting">Troubleshooting</a></li><li><a href="#acknowledgements">Acknowledgements</a></li></ul></nav></header><h2 id="overview"><a href="#overview" class="anchor"></a>Overview</h2><p><em>Streaming</em> uses composable stream producers (sources), consumers (sinks) and transformers (flows). The central model that abstracts over them is a <a href="Streaming/Stream/index.html"><span><code>Stream</code></span></a>.</p><p>The following features are provided:</p><ul><li><b>Constant memory usage</b>: large or infinite streams can be computed in constant and small space. Buffering of the input is possible when needed.</li><li><b>Excellent performance</b>: all models were designed with performance at the core. See <a href="https://github.com/rizo/streams-bench">benchmarks</a> for detailed comparison with other libraries.</li><li><b>Resource safety</b>: resources in effectful streaming pipelines are allocated lazily and released as early as possible. Resources are guaranteed to be terminated even when streams rise exceptions.</li><li><b>Flexibility and loose coupling</b>: push-based and pull-based models are implemented to allow efficient zipping, concatenation and implementation decoupled sources, sinks and flows.</li><li><b>Streaming notation</b>: build streams and sinks using a convenient comprehension and applicative notations (see examples <a href="#using-stream-notation">below</a>).</li></ul><h2 id="modules"><a href="#modules" class="anchor"></a>Modules</h2>
+
+<table class="xodoc">
+  <tr>
+    <td><a href="Streaming/Stream/index.html"><b><code>Stream</code></b></td>
+    <td>
+      Push-based streams with excellent overall performance, safe and lazy
+      resource management and a multitude of operations. Streams can be built
+      with <a
+      href="#using-stream-notation">comprehensions</a>.
+    </td>
+  </tr>
+  <tr>
+    <td><a href="Streaming/Source/index.html"><b><code>Source</code></b></td>
+    <td>
+      Pull-based producers of values with good performance, safe and lazy
+      resource management and zipping operations.
+    </td>
+  </tr>
+  <tr>
+    <td><a href="Streaming/Sink/index.html"><b><code>Sink</code></b></td>
+    <td>
+      Consumers of values with excellent performance, safe and lazy
+      resource management and flexible <a
+      href="Streaming/Sink/index.html/#combining-sinks">composition
+      operations</a>. Sinks are like first-class folds with early termination!
+    </td>
+  </tr>
+  <tr>
+    <td><a href="Streaming/Flow/index.html"><b><code>Flow</code></b></td>
+    <td>
+      Transformers of values that form composable streaming pipelines.
+      Excellent for defining source and sink independent value transformations.
+    </td>
+  </tr>
+</table>
+<p>For more information on each module consult the entrypoint module <a href="Streaming/index.html"><code>Streaming</code></a>.</p><h2 id="quickstart"><a href="#quickstart" class="anchor"></a>Quickstart</h2><h3 id="install-using-opam"><a href="#install-using-opam" class="anchor"></a>Install using opam</h3><p>The library can be installed with OPAM: <code>opam install streaming</code>. You can run <code>opam info streaming</code> to make sure that the library is installed.</p><h3 id="install-using-esy"><a href="#install-using-esy" class="anchor"></a>Install using esy</h3><p>Add <code>&quot;@opam/streaming&quot;: &quot;0.1&quot;</code> to dependencies in your <code>package.json</code> file and install the dependencies with <code>esy install</code>. Run <code>esy ls-modules</code> to make sure that the library is installed for your project.</p><h3 id="use-with-dune"><a href="#use-with-dune" class="anchor"></a>Use with dune</h3><p>To start using <a href="Streaming/index.html"><code>Streaming</code></a> in your dune project add it to <code>libraries</code> in the <code>dune</code> file.</p><pre><code class="ml">(executable
+  (public_name myexe)
+  (libraries streaming))</code></pre><p>Open the entrypoint module in your code to start using Streams:</p><pre><code class="ml">open Streaming</code></pre><h3 id="use-in-the-top-level"><a href="#use-in-the-top-level" class="anchor"></a>Use in the top-level</h3><p>Fire up <a href="https://github.com/ocaml-community/utop">utop</a> or <a href="https://github.com/dbuenzli/down">down</a> and run:</p><pre><code class="ml"># #require &quot;streaming&quot;;;
+# open Streaming;;
+# Stream.(stdin |&gt; stdout);;
+We're streaming!&lt;Enter&gt;
+We're streaming!
+&lt;Ctrl+d&gt;
+- : unit = ()</code></pre><p>That's it! Scroll down to see some examples or jump into the <a href="Streaming/index.html"><span>API documentation</span></a>.</p><h2 id="examples"><a href="#examples" class="anchor"></a>Examples</h2><h4 id="read-lines-from-stdin"><a href="#read-lines-from-stdin" class="anchor"></a>Read lines from <code>STDIN</code></h4><pre><code class="ml"># Stream.stdin
+  |&gt; Stream.filter ((&lt;&gt;) &quot;&quot;)
+  |&gt; Stream.map (fun line -&gt; &quot;You wrote: &quot; ^ line)
+  |&gt; Stream.each print_endline</code></pre><h4 id="using-stream-notation"><a href="#using-stream-notation" class="anchor"></a>Using stream notation</h4><pre><code class="ml"># let items =
+    let* n = Stream.range 1 3 in
+    let* c = Stream.of_list ['x'; 'y'] in
+    yield (n, c)
+
+# Strea.to_list items
+- : (int * char) list = [(1, 'x'); (1, 'y'); (2, 'x'); (2, 'y')])</code></pre><h4 id="using-sink-notation"><a href="#using-sink-notation" class="anchor"></a>Using sink notation</h4><p>Compute the arithmetic mean in a single iteration of the input.</p><pre><code class="ml"># let mean =
+    let open Sink.Syntax in
+    let+ total = Sink.sum
+    and+ count = Sink.length in
+    total / count
+
+# Stream.(iota 20 |&gt; into mean)
+- : int = 9</code></pre><h2 id="resource-handling"><a href="#resource-handling" class="anchor"></a>Resource handling</h2><p>Input and output resources involved in stream processing will have the following two properties:</p><ul><li>Resources are aquired lazily and only if neeeded. For example, <span class="xref-unresolved" title="unresolved reference to &quot;Streaming.Stream.file&quot;"><a href="Streaming/index.html#module-Stream"><code>Streaming.Stream</code></a>.file</span> will only open the file for reading when the stream is being consumed. Similarly, a sink for a file will only open the file when elements are being written into it. Sinks are initialized before sources, when the computation begins.</li><li>Stream operations do not leak resources. The clean up functions for sources and sinks is guaranteed to be called in the presence of early termination (when not all input is consumed) and in case of exceptions in the streaming pipeline.</li></ul><p>The following examples demonstrate these two properties in practice.</p><h4 id="examples"><a href="#examples" class="anchor"></a>Examples</h4><pre><code class="ml">(* Create a source that must not be initialized. *)
+# let bomb () =
+    Source.make
+      ~init:(fun () -&gt; failwith &quot;Boom!&quot;)
+      ~pull:(fun () -&gt; None)
+      ()
+val bomb : unit -&gt; 'a source = &lt;fun&gt;
+
+(* Feed it into a stream that terminates early. *)
+# bomb ()
+  |&gt; Stream.from
+  |&gt; Stream.take 0
+  |&gt; Stream.to_list
+- : 'a list = []</code></pre><p>And... nothing! As you can see our &quot;bomb&quot; was never detonated. This is because in streams, sinks (in our case it's <code>to_list</code> combined with <code>take</code>) are checked before for &quot;fullness&quot; before sources are initialized.</p><p>In the next example let's look at how streams behave in the presence of exceptions.</p><pre><code class="ml"># let im_a_source_i_must_not_leak () =
+    Source.make
+      ~init:(fun () -&gt; `Dangerous_input)
+      ~pull:(fun st -&gt; Some (&quot;always blue&quot;, st))
+      ~stop:(fun `Dangerous_input -&gt;
+          print_endline &quot;Stopping input... Phew!&quot;)
+      ()
+val im_a_source_i_must_not_leak : unit -&gt; string source = &lt;fun&gt;
+
+# let im_a_sink_i_must_not_leak () =
+    Sink.make
+      ~init:(fun () -&gt; `Dangerous_output)
+      ~push:(fun `Dangerous_output x -&gt; `Dangerous_output)
+      ~stop:(fun `Dangerous_output -&gt;
+          print_endline &quot;Stopping output... That was close!&quot;)
+      ()
+val im_a_sink_i_must_not_leak : unit -&gt; ('a, unit) sink = &lt;fun&gt;
+
+# im_a_source_i_must_not_leak ()
+  |&gt; Stream.from
+  |&gt; Stream.map (fun x -&gt; failwith &quot;Boom!&quot;)
+  |&gt; Stream.into (im_a_sink_i_must_not_leak ())
+Stopping input... Phew!
+Stopping output... That was close!
+Exception: Failure &quot;Boom!&quot;.</code></pre><p>Our termination functions run just before the world exploded!</p><h4 id="limitations"><a href="#limitations" class="anchor"></a>Limitations</h4><p>The termination functions in streaming are always guaranteed to be called. What is currently not well specified is the state they will be called with. It is possible for a source, for example, to stream lines from multiple files, while seamlessly opening and closing them as the input is read. In normal termination conditions, streaming will correctly call all termination functions with correct states.</p><p>The same is not true in situations when exceptions are raised. Currently, when there is an exception, streaming will call the termination function on the first instance of the state, even though it might have changed.</p><p>This is not a difficult problem to solve, but a correct implementation has a high performance cost.</p><p>In the future, streaming might expose safer stream management functions to help with these situations. For now, it is recommended that sources and sinks implement their <code>stop</code> functions in a way that allows them to close all allocated resources when given only the first state. This can be achieved by aggregating the intermediate states or using refs to allow the initial state to point to the latest sate.</p><h2 id="questions"><a href="#questions" class="anchor"></a>Questions</h2><h3 id="when-should-i-use-streaming?"><a href="#when-should-i-use-streaming?" class="anchor"></a>When should I use <code>streaming</code>?</h3><p><code>streaming</code> is a general-purpose streaming library with abstractions meant to be used as a drop-in replacement for concrete sequential data-structures such as lists. It is always a good idea to use a streaming model if you need sequential access to data. For very small collections that do not need to be processed multiple times, using lists is adequate. In all other situations, streams are significantly better in terms of performance and composition.</p><p>Streaming abstractions are an excellent choice for stateful producers and consumers that require precise resource management. Consuming elements from a file or a database handler with streams is significantly safer. All models in <code>streaming</code> are lazy (they will only initialise resources when needed) and support prompt termination (the resources will be terminate immediately when they are no longer needed). This is guaranteed even when streaming pipelines raise exceptions.</p><p>Finally, streaming encourages implementation of small decoupled sources, sinks and flow that can be reused in a wide spectrum of situations.</p><h3 id="how-fast-are-streams-compared-to-other-streaming-models?"><a href="#how-fast-are-streams-compared-to-other-streaming-models?" class="anchor"></a>How fast are Streams compared to other streaming models?</h3><p>In short - fast (<a href="https://github.com/rizo/streams-bench">see</a> for yourself). The <a href="Streaming/Stream/index.html"><code>Streaming.Stream</code></a> module was designed to improve the most efficient iteration model currently available for OCaml, which is the so called &quot;internal iterator&quot; with the type <code>('a -&gt; unit) -&gt; unit</code>. This iterator is related to the commonly available &quot;iter&quot; functions in the standard library.</p><p>Streams are a variant of internal iterators that add support for resource safety, early termination and avoid the need for mutations and exceptions in the combinators. In addition to that, they provide a similar performance profile.</p><h3 id="what's-the-difference-between-sources-and-streams?"><a href="#what's-the-difference-between-sources-and-streams?" class="anchor"></a>What's the difference between Sources and Streams?</h3><p>Both sources and streams produce values. The main difference is flow control: with sources, consumers of the elements are in charge of control; while with streams, it's the producers who drive the computation. This means that sources should be used for situations where the elements are requested on-demand, while streams are best suited for &quot;reactive&quot; inputs.</p><p>In general, streams offer better performance than sources for the most common operations (including concatenation) and offer <a href="Streaming/Stream/index.html#adaptors">integration</a> with sinks and flows. On the other hand, sources are easier to create and support <a href="Streaming/Source/index.html#zipping-sources">zipping</a>.</p><p>It is recommended to use sources to define decoupled producers that can be consumed with streams. Any source can become a stream, but the opposite is not so easy.</p><h3 id="why-are-all-streaming-types-in-this-library-abstract?"><a href="#why-are-all-streaming-types-in-this-library-abstract?" class="anchor"></a>Why are all streaming types in this library abstract?</h3><p>Even though the core types in streaming are very simple, stable and have many nice properties, it is possible that the types might change in the future to support new functionality such as backpressure and concurrency. To avoid breaking changes, and until the library reaches the 1.0 milestone, the types are going to be abstract.</p><p>If you have a use-case that requires access to the internal type, please <a href="https://github.com/odis-labs/streaming/issues/new">open an issue</a>.</p><h3 id="how-can-the-net-amount-of-entropy-of-the-universe-be-massively-decreased?"><a href="#how-can-the-net-amount-of-entropy-of-the-universe-be-massively-decreased?" class="anchor"></a>How can the net amount of entropy of the universe be massively decreased?</h3> <details style="cursor: pointer"><summary>You should ask AC.</summary> <pre><code class="ml">let answer () =
+  let x = &quot;84726982693273833265833289698432737883857070736773697&quot; ^
+          &quot;8843268658465327079823265327769657873787170857632657883876982
+  What if there was no space and time?&quot; in
+  let open Format in let (%^) = printf in
+  let open Streaming in let open Stream in
+  let (%)=fun f g x-&gt;f (g x) and
+  (|/-)=(%^)&quot;\027[1m\027[41m&quot;;&quot;\\|/-&quot;in let (//) x = (|/-)
+    |&gt; of_string
+    |&gt; interpose '\b' |&gt; append '\b'
+    |&gt; cycle ~times:(Random.int 10)
+    |&gt; append x
+    |&gt; each (fun c -&gt; &quot;%c%!&quot; %^ (Unix.sleepf 0.003; c)) in
+  from @@ (let pull i =
+      if i &gt;= 114 then None
+      else Some (String.sub x i 2, i + 2)
+    in Source.make ~init:(fun () -&gt; 0) ~pull ())
+  |&gt; via (Flow.map (char_of_int%int_of_string))
+  |&gt; into (Sink.each (//)); (%^) &quot;\027[0m&quot;</code></pre> </details> <h2 id="troubleshooting"><a href="#troubleshooting" class="anchor"></a>Troubleshooting</h2><ul><li><b>Incorrect <code>Stream</code> module</b> - if you forget to open <code>Streaming</code> you might start using the <code>Stream</code> module from the standard library. This will result in <code>Unbound value</code> and type mismatch errors.</li><li><b>My stream pipeline never terminates</b> - this indicates that one of your producers or transformers produces an infinite stream. Make sure that you are limiting the stream input with operations such as <a href="Streaming/Stream/index.html#val-take"><code>Streaming.Stream.take</code></a> or <a href="Streaming/Stream/index.html#val-drop"><code>Streaming.Stream.drop</code></a>.</li></ul><h2 id="acknowledgements"><a href="#acknowledgements" class="anchor"></a>Acknowledgements</h2><p>This library is based on ideas found in other libraries and research projects such as: Haskell's <a href="https://github.com/Gabriel439/Haskell-Pipes-Library">Pipes</a> and <a href="https://github.com/Gabriel439/Haskell-Foldl-Library">Foldl</a> libraries, Scala's <a href="https://zio.dev">ZIO Streams</a>, Clojure's <a href="https://clojure.org/reference/transducers">Transducers</a> and the <a href="http://okmij.org/ftp/Streams.html">Iteratees</a> streaming model by Oleg Kiselyov.</p></div></body></html>
