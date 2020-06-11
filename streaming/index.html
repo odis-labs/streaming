@@ -72,7 +72,7 @@ val bomb : unit -&gt; 'a source = &lt;fun&gt;
   |&gt; Stream.from
   |&gt; Stream.take 0
   |&gt; Stream.to_list
-- : 'a list = []</code></pre><p>And... nothing! As you can see our &quot;bomb&quot; was never detonated. This is because in streams, sinks (in our case it's <code>to_list</code> combined with <code>take</code>) are checked before for &quot;fullness&quot; before sources are initialized.</p><p>In the next example let's look at how streams behave in the presence of exceptions.</p><pre><code class="ml"># let im_a_source_i_must_not_leak () =
+- : 'a list = []</code></pre><p>And... nothing! As you can see our &quot;bomb&quot; was never detonated. This is because in streams, sinks (in our case it's <code>to_list</code> combined with <code>take</code>) are checked for &quot;fullness&quot; before sources are initialized.</p><p>In the next example let's look at how streams behave in the presence of exceptions.</p><pre><code class="ml"># let im_a_source_i_must_not_leak () =
     Source.make
       ~init:(fun () -&gt; `Dangerous_input)
       ~pull:(fun st -&gt; Some (&quot;always blue&quot;, st))
