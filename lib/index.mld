@@ -198,7 +198,7 @@ val bomb : unit -> 'a source = <fun>
 
 And... nothing! As you can see our "bomb" was never detonated. This is because
 in streams, sinks (in our case it's [to_list] combined with [take]) are
-checked before for "fullness" before sources are initialized.
+checked for "fullness" before sources are initialized.
 
 In the next example let's look at how streams behave in the presence of exceptions.
 
