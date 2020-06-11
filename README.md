@@ -3,8 +3,6 @@
 Streaming abstractions that combine, transform and reduce large amounts of
 sequential data efficiently, in constant space and without leaking resources.
 
-* [Documentation](https://odis-labs.github.io/streaming)
-
 ## Overview
 
 _Streaming_ uses composable stream producers (sources), consumers (sinks) and
@@ -24,6 +22,8 @@ The following features are provided:
   allow efficient zipping, concatenation and other streaming operations.
 - **Streaming notation**: build streams and sinks using a convenient
   comprehension and applicative notations.
+
+Read the [library documenation](https://odis-labs.github.io/streaming) for more details.
 
 
 # Acknowledgements
