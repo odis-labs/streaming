@@ -566,7 +566,7 @@ let string =
 let file path =
   Sink {
     init = (fun () -> Stdlib.open_out path);
-    push = (fun chan x -> Stdlib.output_string chan x; chan);
+    push = (fun chan x -> Stdlib.output_string chan (x ^ "\n"); chan);
     full = (fun _ -> false);
     stop = close_out
   }

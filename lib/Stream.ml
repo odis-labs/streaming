@@ -368,14 +368,14 @@ let group ?equal:(_ =Pervasives.(=)) self =
 
 (* IO *)
 
-let file path =
+let of_file path =
   (* Using a lazy val will avoid opening the file if not needed. *)
   let ic = lazy (open_in path) in
 	let stream (Sink k) =
 		let rec loop r =
       if k.full r then r
       else
-				match input_char (Lazy.force ic) with
+				match input_line (Lazy.force ic) with
         | x -> loop (k.push r x)
 			  | exception End_of_file -> r in
     let stop r =
@@ -383,6 +383,10 @@ let file path =
       k.stop r in
     bracket loop ~init:k.init ~stop in
 	{ stream }
+
+
+let to_file path =
+  into (Sink.file path)
 
 
 let stdin =

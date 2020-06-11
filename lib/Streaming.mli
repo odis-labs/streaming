@@ -458,7 +458,8 @@ module Sink : sig
   (** Prints all input string elements to standard output as lines. *)
 
   val file : string -> (string, unit) t
-  (** [file path] is a sink that writes input strings as lines into a file located at [path]. *)
+  (** [file path] is a sink that writes input strings as lines into a file
+      located at [path]. *)
 
   val stdout : (string, unit) t
   (** A sink that writes input strings as lines to STDOUT. *)
@@ -1125,12 +1126,16 @@ module Stream : sig
 
   (** {1 IO Streams} *)
 
-  val file : string -> char t
-  (** [file path] is a stream of characters read from the file located at
+  val of_file : string -> string t
+  (** [of_file path] is a stream of lines read from the file located at
       [path].
 
       The file is opened lazily only when the stream is consumed and will be
       closed even if the stream processing terminates with an exception. *)
+
+  val to_file : string -> string t -> unit
+  (** [to_file path stream] writes lines from [stream] into the file located at
+      [path]. *)
 
   val stdin : string t
   (** The stream that reads lines from the standard input channel. *)
