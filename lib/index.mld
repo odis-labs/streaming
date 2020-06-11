@@ -304,7 +304,7 @@ streams are best suited for "reactive" inputs.
 In general, streams offer better performance than sources for the most common
 operations (including concatenation) and offer
 {{:Streaming/Stream/index.html#adaptors} integration} with sinks and
-flows. On the other hand, sources are easier to create and support
+flows. On the other hand, sources are easier to create, and support
 {{:Streaming/Source/index.html#zipping-sources} zipping}.
 
 It is recommended to use sources to define decoupled producers that can be
