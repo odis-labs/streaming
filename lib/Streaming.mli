@@ -846,7 +846,7 @@ type 'a stream
     transformed and concatenated.
 
     Stream operations do not leak resources. This is guaranteed in the presence
-    of early termination (when not all stream elements are consumed) or in case
+    of early termination (when not all stream elements are consumed) and in case
     of exceptions in the streaming pipeline.
 
     Streams are built to be compatible with {{!module:Source} sources}, {{!module:Sink}

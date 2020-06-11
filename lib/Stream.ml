@@ -10,30 +10,29 @@ type 'a t = 'a stream =
 
 let run ~from:(Source src) ~via:{flow} ~into:snk =
   let (Sink snk) = flow snk in
-  let rec loop s r =
+  let rec loop r s =
     if snk.full r then
       (* Sink is full. We capture the current source state into [init].
          This means that the consumers will have to dispose the source if the
          source leftover is not needed. *)
-      (r, Some (Source { src with init = (fun () -> s) }))
+      let r' = snk.stop r in
+      let leftover = Source { src with init = (fun () -> s) } in
+      (r', Some leftover)
     else match src.pull s with
-      | Some (x, s') -> loop s' (snk.push r x)
+      | Some (x, s') -> loop (snk.push r x) s'
       | None ->
-        (* The source was exhausted, stop it. *)
+        (* The source was exhausted, stop src and snk. *)
         src.stop s;
-        (r, None) in
-  (* Create the source state. If this fails, there's nothing we can do. *)
-  let s0 = src.init () in
-  (* Create the sink state. If this fail, we close the source state. *)
-  let r0 = try snk.init () with exn -> src.stop s0; raise exn in
-  try
-    let r, leftover = loop s0 r0 in
-    (* Computation finished, close the sink state. We don't need to close the
-       source state: if there's a leftover it stays open, if it's exhausted
-       loop will close it. *)
-    let r' = snk.stop r in
-    (r', leftover)
-  with exn ->
+        let r' = snk.stop r in
+        (r', None) in
+
+  (* Create the sink state. If this fails, there's nothing we can do. *)
+  let r0 = snk.init () in
+  (* Check if k is full, if so, return (the full src is leftover). *)
+  if snk.full r0 then (snk.stop r0, Some (Source src)) else
+  (* Create the src state. If this fail, we close the snk state. *)
+  let s0 = try src.init () with exn -> let _ = snk.stop r0 in raise exn in
+  try loop r0 s0 with exn ->
     (* Computation failed, close both (initial) states. *)
     src.stop s0;
     let _r' = snk.stop r0 in
@@ -42,14 +41,24 @@ let run ~from:(Source src) ~via:{flow} ~into:snk =
 
 let from (Source src) =
   let stream (Sink k) =
-    let rec loop s r =
-      if k.full r then r
-      else match src.pull s with
-        | None -> r
-        | Some (x, s') -> loop s' (k.push r x) in
-    let s0 = src.init () in
-    let stop r = src.stop s0; k.stop r in
-    bracket (loop s0) ~init:k.init ~stop in
+    (* Loop will terminate both src and k when src is exhausted. *)
+    let rec loop r s =
+      if k.full r then k.stop r else
+      match src.pull s with
+      | None -> src.stop s; k.stop r
+      | Some (x, s') -> loop (k.push r x) s'
+    in
+    (* Create the sink state. If this fails, there's nothing we can do. *)
+    let r0 = k.init () in
+    (* Check if k is full, if so, return (src is not initialized). *)
+    if k.full r0 then k.stop r0 else
+    (* Create the src state. If this fail, we close the snk state. *)
+    let s0 = try src.init () with exn -> let _ = k.stop r0 in raise exn in
+    try loop r0 s0 with exn ->
+      src.stop s0;
+      let _ = k.stop r0 in
+      raise exn
+  in
   { stream }
 
 
