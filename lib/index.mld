@@ -141,7 +141,7 @@ That's it! Scroll down to see some examples or jump into the {{!module:Streaming
     let* c = Stream.of_list ['x'; 'y'] in
     yield (n, c)
 
-# Strea.to_list items
+# Stream.to_list items
 - : (int * char) list = [(1, 'x'); (1, 'y'); (2, 'x'); (2, 'y')])
 ]}
 
