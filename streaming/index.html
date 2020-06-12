@@ -23,7 +23,7 @@
     <td>
       Consumers of values with excellent performance, safe and lazy
       resource management and flexible <a
-      href="Streaming/Sink/index.html#combining-sinks">composition
+      href="Streaming/Sink/index.html/#combining-sinks">composition
       operations</a>. Sinks are like first-class folds with early termination!
     </td>
   </tr>
@@ -35,7 +35,7 @@
     </td>
   </tr>
 </table>
-<p>For more information on each module consult the entrypoint module <a href="Streaming/index.html"><code>Streaming</code></a>.</p><h2 id="quickstart"><a href="#quickstart" class="anchor"></a>Quickstart</h2><h3 id="install-using-opam"><a href="#install-using-opam" class="anchor"></a>Install using opam</h3><p>The library can be installed with OPAM: <code>opam install streaming</code>. You can run <code>opam info streaming</code> to make sure that the library is installed.</p><h3 id="install-using-esy"><a href="#install-using-esy" class="anchor"></a>Install using esy</h3><p>Add <code>&quot;@opam/streaming&quot;: &quot;*&quot;</code> to dependencies in your <code>package.json</code> file and install the dependencies with <code>esy install</code>. Run <code>esy ls-modules</code> to make sure that the library is installed for your project.</p><h3 id="use-with-dune"><a href="#use-with-dune" class="anchor"></a>Use with dune</h3><p>To start using <a href="Streaming/index.html"><code>Streaming</code></a> in your dune project add it to <code>libraries</code> in the <code>dune</code> file.</p><pre><code class="ml">(executable
+<p>For more information on each module consult the entrypoint module <a href="Streaming/index.html"><code>Streaming</code></a>.</p><h2 id="quickstart"><a href="#quickstart" class="anchor"></a>Quickstart</h2><h3 id="install-using-opam"><a href="#install-using-opam" class="anchor"></a>Install using opam</h3><p>The library can be installed with OPAM: <code>opam install streaming</code>. You can run <code>opam info streaming</code> to make sure that the library is installed.</p><h3 id="install-using-esy"><a href="#install-using-esy" class="anchor"></a>Install using esy</h3><p>Add <code>&quot;@opam/streaming&quot;: &quot;0.1&quot;</code> to dependencies in your <code>package.json</code> file and install the dependencies with <code>esy install</code>. Run <code>esy ls-modules</code> to make sure that the library is installed for your project.</p><h3 id="use-with-dune"><a href="#use-with-dune" class="anchor"></a>Use with dune</h3><p>To start using <a href="Streaming/index.html"><code>Streaming</code></a> in your dune project add it to <code>libraries</code> in the <code>dune</code> file.</p><pre><code class="ml">(executable
   (public_name myexe)
   (libraries streaming))</code></pre><p>Open the entrypoint module in your code to start using Streams:</p><pre><code class="ml">open Streaming</code></pre><h3 id="use-in-the-top-level"><a href="#use-in-the-top-level" class="anchor"></a>Use in the top-level</h3><p>Fire up <a href="https://github.com/ocaml-community/utop">utop</a> or <a href="https://github.com/dbuenzli/down">down</a> and run:</p><pre><code class="ml"># #require &quot;streaming&quot;;;
 # open Streaming;;
@@ -47,11 +47,12 @@ We're streaming!
   |&gt; Stream.filter ((&lt;&gt;) &quot;&quot;)
   |&gt; Stream.map (fun line -&gt; &quot;You wrote: &quot; ^ line)
   |&gt; Stream.each print_endline</code></pre><h4 id="using-stream-notation"><a href="#using-stream-notation" class="anchor"></a>Using stream notation</h4><pre><code class="ml"># let items =
+    let open Stream.Syntax in
     let* n = Stream.range 1 3 in
     let* c = Stream.of_list ['x'; 'y'] in
     yield (n, c)
 
-# Strea.to_list items
+# Stream.to_list items
 - : (int * char) list = [(1, 'x'); (1, 'y'); (2, 'x'); (2, 'y')])</code></pre><h4 id="using-sink-notation"><a href="#using-sink-notation" class="anchor"></a>Using sink notation</h4><p>Compute the arithmetic mean in a single iteration of the input.</p><pre><code class="ml"># let mean =
     let open Sink.Syntax in
     let+ total = Sink.sum
