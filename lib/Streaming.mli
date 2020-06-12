@@ -179,7 +179,7 @@ module Source : sig
       Many consumers are available in the {!module:Sink} module. You can consume any source using a sink with:
 
       {[
-      let source = Source.count 10 in
+      let source = Source.iota 10 in
       source
       |> Stream.from
       |> Stream.into Sink.last
