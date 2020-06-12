@@ -21,7 +21,7 @@ The following features are provided:
   lazily and released as early as possible. Resources are guaranteed to
   be terminated even when streams rise exceptions.
 - {b Flexibility and loose coupling}: push-based and pull-based models are
-  implemented to allow efficient zipping, concatenation and implementation
+  implemented to allow efficient zipping, concatenation and implementation of
   decoupled sources, sinks and flows.
 - {b Streaming notation}: build streams and sinks using a convenient
   comprehension and applicative notations (see examples {{:#using-stream-notation} below}).
@@ -204,28 +204,28 @@ checked for "fullness" before sources are initialized.
 In the next example let's look at how streams behave in the presence of exceptions.
 
 {[
-# let im_a_source_i_must_not_leak () =
+# let i'm_a_source_i_must_not_leak () =
     Source.make
       ~init:(fun () -> `Dangerous_input)
       ~pull:(fun st -> Some ("always blue", st))
       ~stop:(fun `Dangerous_input ->
           print_endline "Stopping input... Phew!")
       ()
-val im_a_source_i_must_not_leak : unit -> string source = <fun>
+val i'm_a_source_i_must_not_leak : unit -> string source = <fun>
 
-# let im_a_sink_i_must_not_leak () =
+# let i'm_a_sink_i_must_not_leak () =
     Sink.make
       ~init:(fun () -> `Dangerous_output)
       ~push:(fun `Dangerous_output x -> `Dangerous_output)
       ~stop:(fun `Dangerous_output ->
           print_endline "Stopping output... That was close!")
       ()
-val im_a_sink_i_must_not_leak : unit -> ('a, unit) sink = <fun>
+val i'm_a_sink_i_must_not_leak : unit -> ('a, unit) sink = <fun>
 
-# im_a_source_i_must_not_leak ()
+# i'm_a_source_i_must_not_leak ()
   |> Stream.from
   |> Stream.map (fun x -> failwith "Boom!")
-  |> Stream.into (im_a_sink_i_must_not_leak ())
+  |> Stream.into (i'm_a_sink_i_must_not_leak ())
 Stopping input... Phew!
 Stopping output... That was close!
 Exception: Failure "Boom!".
@@ -273,7 +273,7 @@ Streaming abstractions are an excellent choice for stateful producers and
 consumers that require precise resource management. Consuming elements
 from a file or a database handler with streams is significantly safer. All
 models in [streaming] are lazy (they will only initialise resources when
-needed) and support prompt termination (the resources will be terminate
+needed) and support prompt termination (the resources will be terminated
 immediately when they are no longer needed). This is guaranteed even when
 streaming pipelines raise exceptions.
 
@@ -299,7 +299,7 @@ profile.
 Both sources and streams produce values. The main difference is flow control:
 with sources, consumers of the elements are in charge of control; while with
 streams, it's the producers who drive the computation. This means that sources
-should be used for situations where the elements are requested on-demand, while
+should be used for situations where the elements are requested on demand, while
 streams are best suited for "reactive" inputs.
 
 In general, streams offer better performance than sources for the most common
