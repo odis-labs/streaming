@@ -1,5 +1,5 @@
 
-type 'a source =
+type +'a source =
   Source : {
     init : unit -> 's;
     pull : 's -> ('a * 's) option;
@@ -8,7 +8,7 @@ type 'a source =
 
 
 type ('a, 'b) sink =
-  Sink : { 
+  Sink : {
     init : unit -> 's;
     push : 's -> 'a -> 's;
     full : 's -> bool;

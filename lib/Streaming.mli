@@ -36,7 +36,7 @@ sequential data efficiently, in constant space and without leaking resources. *)
 
 
 (** Type for sources that produce elements of type ['a]. *)
-type 'a source
+type +'a source
 
 
 (** Module with defintions for sources.
@@ -55,7 +55,7 @@ type 'a source
     reuse their input. *)
 module Source : sig
 
-  type 'a t = 'a source
+  type +'a t = 'a source
   (** The type for sources that produce elements of type ['a]. *)
 
   (** {1 Creating a source}
