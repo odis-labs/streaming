@@ -1237,7 +1237,7 @@ module Stream : sig
         let* n = Stream.range 1 3 in
         let* c = Stream.of_list ['x'; 'y'] in
         yield (n, c) in
-      assert (Strea.to_list items = [(1, 'x'); (1, 'y'); (2, 'x'); (2, 'y')])
+      assert (Stream.to_list items = [(1, 'x'); (1, 'y'); (2, 'x'); (2, 'y')])
       ]} *)
 
   (** Module with syntax definitions for streams. *)
@@ -1249,6 +1249,3 @@ module Stream : sig
   end
 
 end
-
-
-
