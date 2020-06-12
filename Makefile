@@ -14,7 +14,7 @@ docs-update: git-check-uncommited docs-build
 	git checkout gh-pages
 	rm -rf ./streaming
 	cp -r ./_build/default/_doc/_html/streaming/ ./streaming
-	@if git status --porcelain --untracked-files=no; then \
+	@if git diff-index --quiet HEAD streaming; then \
 		echo "No changes."; \
 	else \
 		git add ./streaming; \
