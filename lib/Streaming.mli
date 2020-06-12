@@ -468,7 +468,7 @@ module Sink : sig
   (** A sink that writes input strings as lines to STDERR. *)
 
 
-  (** {1 Numeric compuations} *)
+  (** {1 Numeric computations} *)
 
   val sum : (int, int) t
   (** Adds all input integer values. *)
@@ -974,7 +974,7 @@ module Stream : sig
 
 
 
-  (** {1 Transformerming a stream} *)
+  (** {1 Transforming a stream} *)
 
   val map : ('a -> 'b) -> 'a t -> 'b t
   (** A stream with all elements transformed with a mapping function. *)
