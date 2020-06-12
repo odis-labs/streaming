@@ -137,6 +137,7 @@ That's it! Scroll down to see some examples or jump into the {{!module:Streaming
 
 {[
 # let items =
+    let open Stream.Syntax in
     let* n = Stream.range 1 3 in
     let* c = Stream.of_list ['x'; 'y'] in
     yield (n, c)
