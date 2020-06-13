@@ -56,7 +56,7 @@ We're streaming!
 - : (int * char) list = [(1, 'x'); (1, 'y'); (2, 'x'); (2, 'y')])</code></pre><h4 id="using-sink-notation"><a href="#using-sink-notation" class="anchor"></a>Using sink notation</h4><p>Compute the arithmetic mean in a single iteration of the input.</p><pre><code class="ml"># let mean =
     let open Sink.Syntax in
     let+ total = Sink.sum
-    and+ count = Sink.length in
+    and+ count = Sink.len in
     total / count
 
 # Stream.(iota 20 |&gt; into mean)
