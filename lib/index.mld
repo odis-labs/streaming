@@ -152,7 +152,7 @@ Compute the arithmetic mean in a single iteration of the input.
 # let mean =
     let open Sink.Syntax in
     let+ total = Sink.sum
-    and+ count = Sink.length in
+    and+ count = Sink.len in
     total / count
 
 # Stream.(iota 20 |> into mean)
