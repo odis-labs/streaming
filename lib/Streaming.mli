@@ -950,7 +950,7 @@ module Stream : sig
       terminate when [next] produces [None]. *)
 
   val yield  : 'a -> 'a t
-  (** [yield x] is a stream with a single element [x]. *)
+  (** [yield x] is a stream with a single element [x]. Alias for [single]. *)
 
   (** {1 Stream converters} *)
 
