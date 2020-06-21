@@ -220,7 +220,7 @@ end
 
   Sinks are streaming abstractions that consume values and produce an
   aggregated value as a result. The result value is extracted from an internal
-  state that is built incrementally. The internal state can aquire resources
+  state that is built incrementally. The internal state can acquire resources
   that are guaranteed to be terminated when the sink is filled.
 
   Sinks are a great way to define decoupled consumers that can be filled with

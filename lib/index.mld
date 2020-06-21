@@ -166,12 +166,12 @@ Input and output resources involved in stream processing will have the
 following two properties:
 
 - Resources are aquired lazily and only if neeeded. For example,
-  {!val:Streaming.Stream.file} will only open the file for reading when the
+  {!val:Streaming.Stream.of_file} will only open the file for reading when the
   stream is being consumed. Similarly, a sink for a file will only open the
   file when elements are being written into it. Sinks are initialized before
   sources, when the computation begins.
 - Stream operations do not leak resources. The clean up functions for sources
-  and sinks is guaranteed to be called in the presence of early termination
+  and sinks are guaranteed to be called in the presence of early termination
   (when not all input is consumed) and in case of exceptions in the streaming
   pipeline.
 
