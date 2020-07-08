@@ -268,10 +268,11 @@ let _flat_map f (Sink top) =
     | Flat_map_top acc -> top.full acc
     | Flat_map_sub sub -> sub.full sub.init in
   let stop = function
-    | Flat_map_top acc -> top.stop acc (* XXX: This constrains the type to 'a. *)
+    | Flat_map_top acc ->
+      let Sink sub = f (top.stop acc) in
+      sub.stop (sub.init ())
     | Flat_map_sub sub -> sub.stop sub.init in
   Sink { init; push; full; stop }
-
 
 
 let fold f z =
@@ -595,6 +596,10 @@ let dispose (Sink snk) =
 
 
 module Syntax = struct
+  let return = fill
+
+  let (let*) t f = flat_map f t
+
   let (let+) f t = map t f
   let (and+) a b = zip a b
 end

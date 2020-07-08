@@ -592,6 +592,29 @@ module Sink : sig
   val (+>) : ('a, _) t -> ('a, 'r) t -> ('a, 'r) t
   (** [left +> right] is an operator version of [seq_right left right]. *)
 
+  val flat_map : ('r1 -> ('a, 'r2) t) -> ('a, 'r1) t -> ('a, 'r2) t
+  (** [flat_map f sink] is a sink produced by applying the result of [sink] to
+      [f]. This allows to sequence multiple sinks by inspecting the result
+      value produced by the previous sinks.
+
+      [flat_map] is defined as the [let*] operator in {!module:Syntax}.
+
+      {b Note:} If [sink] is terminated exhausting the entire input, the sink
+      produced by [f] will be initialized and immediately forced to terminate.
+
+      {[
+      # let large_values () = Sink.flat_map
+          (function
+            | Some x -> Printf.printf "Found value: %d\n" x; Sink.list
+            | None -> Printf.printf "No value found\n"; Sink.fill [])
+          (Sink.find ~where:(fun x -> x > 100))
+      val sink1 : unit -> (int, int list) sink = <fun>
+
+      # let values = Stream.(90 -< 105) |> Stream.into (sink1 ())
+      Found value: 101
+      val values : int list = [102; 103; 104]
+      ]} *)
+
 
   (** {1 Mapping and filtering sinks} *)
 
@@ -649,6 +672,8 @@ module Sink : sig
 
   (** Module with syntax definitions for sinks. *)
   module Syntax : sig
+    val return : 'r -> ('a, 'r) t
+    val (let*) : ('a, 'r1) t -> ('r1 -> ('a, 'r2) t) -> ('a, 'r2) t
     val (let+) : ('c, 'a) t -> ('a -> 'b) -> ('c, 'b) t
     val (and+) : ('a, 'b) t -> ('a, 'c) t -> ('a, 'b * 'c) t
   end
