@@ -623,6 +623,9 @@ module Sink : sig
       val values : int list = [102; 103; 104]
       ]} *)
 
+  val (>>=) : ('a, 'r1) t -> ('r1 -> ('a, 'r2) t) -> ('a, 'r2) t
+  (** [sink >>= f] is an operator version of [flat_map f sink]. *)
+
 
   (** {1 Mapping and filtering sinks} *)
 

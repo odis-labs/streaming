@@ -274,6 +274,7 @@ let _flat_map f (Sink top) =
     | Flat_map_sub sub -> sub.stop sub.init in
   Sink { init; push; full; stop }
 
+let (>>=) m f = flat_map f m
 
 let fold f z =
   Sink {
