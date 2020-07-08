@@ -104,7 +104,11 @@ let group name tests =
   let t0 = Unix.gettimeofday () in
   let s, f =
     List.fold_left begin fun (s, f) test ->
-        if test () then (s + 1, f) else (s, f + 1)
+      if try test () with exn ->
+        Fmt.pr "  %s %s@." (C.bright_red "✗") "Unexpected exception";
+        Fmt.pr "    @[<v2>%a@]@." Fmt.exn_backtrace (exn, Printexc.get_raw_backtrace ());
+        false
+      then (s + 1, f) else (s, f + 1)
       end
       (0, 0) tests in
   let t = Unix.gettimeofday () -. t0 in
