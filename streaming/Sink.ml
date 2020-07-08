@@ -566,12 +566,13 @@ let string =
 
 
 let file path =
-  Sink {
-    init = (fun () -> Stdlib.open_out path);
-    push = (fun chan x -> Stdlib.output_string chan (x ^ "\n"); chan);
-    full = (fun _ -> false);
-    stop = close_out
-  }
+  let init () = lazy (Stdlib.open_out path) in
+  let stop chan =
+    if Lazy.is_val chan
+    then close_out (Lazy.force chan) in
+  let push chan x = Stdlib.output_string (Lazy.force chan) (x ^ "\n"); chan in
+  let full _ = false in
+  Sink { init; stop; full; push }
 
 
 let stderr =
