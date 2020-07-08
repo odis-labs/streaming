@@ -7,17 +7,17 @@ type +'a source =
   } -> 'a source
 
 
-type ('a, 'b) sink =
+type ('a, 'r) sink =
   Sink : {
     init : unit -> 's;
     push : 's -> 'a -> 's;
     full : 's -> bool;
-    stop : 's -> 'b;
-  } -> ('a, 'b) sink
+    stop : 's -> 'r;
+  } -> ('a, 'r) sink
 
 
 type 'a stream =
-  { stream : 'b . ('a, 'b) sink -> 'b }
+  { stream : 'r . ('a, 'r) sink -> 'r }
   [@@unboxed]
 
 

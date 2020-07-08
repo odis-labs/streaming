@@ -2,7 +2,7 @@ open Types
 open Utils
 
 type 'a t = 'a stream =
-  { stream : 'b . ('a, 'b) sink -> 'b }
+  { stream : 'r . ('a, 'r) sink -> 'r }
   [@@unboxed]
 
 
@@ -318,6 +318,23 @@ let rest self =
   drop 1 self
 
 
+(* Does not work with effectful producers. *)
+let unzip self =
+  let left (Sink k) =
+    let push acc x =
+      let left_el, _right_el = x in
+      k.push acc left_el in
+    self.stream (Sink { k with push })
+  in
+  let right (Sink k) =
+    let push acc x =
+      let _left_el, right_el = x in
+      k.push acc right_el in
+    self.stream (Sink { k with push })
+  in
+  ({ stream = left }, { stream = right })
+
+
 let indexed self =
   let stream (Sink k) =
     let i = ref 0 in
@@ -378,6 +395,7 @@ let group ?equal:(_ =Pervasives.(=)) self =
 
 let of_file path =
   (* Using a lazy val will avoid opening the file if not needed. *)
+  (* Should this be moved within [stream]? - thil will allow for repeated processing... *)
   let ic = lazy (open_in path) in
   let stream (Sink k) =
     let rec loop r =

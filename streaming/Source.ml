@@ -186,7 +186,6 @@ let zip src1 src2 =
   zip_with (fun x y -> (x, y)) src1 src2
 
 
-(* FIXME: not resource safe *)
 let fold f r0 (Source src) =
   let rec loop r s =
     match src.pull s with
