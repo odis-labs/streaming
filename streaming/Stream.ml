@@ -157,9 +157,17 @@ let count n =
 let iterate x f = from (Source.iterate x f)
 
 
-let range ?by:(step=1) n m =
+
+let[@inline] range ?by:(step=1) n m =
   if n > m then invalid_arg "Streaming.Stream.range: invalid range" else
-  unfold n (fun i -> if i >= m then None else Some (i, i + step))
+  let[@inline] stream (Sink k) =
+    let rec loop i r =
+      if k.full r then r
+      else
+        if i >= m then r
+        else loop (i + step) (k.push r i) in
+    k.stop (loop n (k.init ())) in
+  { stream }
 
 let iota n =
   range 0 n
