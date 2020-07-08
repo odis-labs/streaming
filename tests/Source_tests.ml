@@ -202,6 +202,20 @@ let () =
     end
   ];
 
+  let t = T.test T.(option (pair int int)) ~verbose in
+  T.group "Source.next" [
+    (fun () -> t "empty" () ~expected:None ~actual:begin
+      match Source.next Source.empty with
+      | Some (_first, _rest) -> assert false
+      | None -> None
+    end);
+    t "small" ~expected:(Some (1, 5)) ~actual:begin
+      match Source.next (Source.list [1; 2; 3]) with
+      | Some (first, rest) -> Some (first, Source.fold (+) 0 rest)
+      | None -> None
+    end
+  ];
+
   let t = T.test ~verbose T.int in
   T.group "Source.dispose" [
     t "init and stop" ~expected:2 ~actual:begin
