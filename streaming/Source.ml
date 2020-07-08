@@ -219,6 +219,17 @@ let each f (Source src) =
     src.stop s0;
     raise exn
 
+let next (Source src) =
+  let go s =
+    match src.pull s with
+    | Some (x, s') -> Some (x, Source { src with init = fun () -> s' })
+    | _ -> None
+  in
+  let s0 = src.init () in
+  try go s0 with exn ->
+    src.stop s0;
+    raise exn
+
 
 let file path : string t =
   Source {

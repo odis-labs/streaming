@@ -200,6 +200,14 @@ module Source : sig
   val each : ('a -> unit) -> 'a t -> unit
   (** [each f src] applies an effectful function [f] to all elements in [src]. *)
 
+  val next : 'a t -> ('a * 'a t) option
+  (** [next src] is [Some (x, rest)] where [x] is the first element of [src]
+      and [rest] is [src] without [x]; or [None], if [src] is empty.
+
+      {b Warning:} If [rest] is produced, it is required to either consume it
+      or manually {{!val:Source.dispose} dispose} its resources. Not doing so
+      might lead to resource leaks. *)
+
 
   (** {1 Resource handling} *)
 
