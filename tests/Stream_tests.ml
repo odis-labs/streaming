@@ -34,13 +34,13 @@ let () =
     t "negative" ~actual:S.(to_list (range (-3) 1)) ~expected:[-3; -2; -1; 0];
     t "step" ~actual:S.(to_list (range 0 50 ~by:10)) ~expected:[0; 10; 20; 30; 40];
     T.raises "invalid" (fun () -> S.range 10 0)
-      ~exn:(Invalid_argument "Streaming.Stream.range: invalid range");
+      ~cmp:(fun exn -> exn = Invalid_argument "Streaming.Stream.range: invalid range");
   ];
   T.group "Stream.iota" [
     t "empty" ~actual:S.(to_list (iota 0)) ~expected:[];
     t "single" ~actual:S.(to_list (iota 1)) ~expected:[0];
     T.raises "negative" (fun () -> S.iota (-3))
-      ~exn:(Invalid_argument "Streaming.Stream.range: invalid range");
+      ~cmp:(fun exn -> exn = Invalid_argument "Streaming.Stream.range: invalid range");
   ];
   let t = T.test T.(list int) ~verbose in
   T.group "Stream.generate" [

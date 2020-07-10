@@ -70,18 +70,17 @@ let test ?(verbose = true) ty msg ~actual ~expected () =
   ok
 
 
-let raises ?(verbose = true) msg ~exn f () =
+let raises ?(verbose = true) msg ~cmp f () =
   let state =
     try let _ = f () in `No_exn
-    with e -> if e = exn then `Ok else `Other e in
+    with e -> if cmp e then `Ok else `Other e in
   match state with
   | `No_exn ->
     Fmt.pr "  %s %s@." (C.bright_red "✗") (C.bright_white msg);
-    Fmt.pr "    * did not raise %s@." (Printexc.to_string exn);
+    Fmt.pr "    * did not raise expected exception@.";
     false
   | `Other actual ->
     Fmt.pr "  %s %s@." (C.bright_red "✗") (C.bright_white msg);
-    Fmt.pr "    - %s@." (Printexc.to_string exn);
     Fmt.pr "    + %s@." (Printexc.to_string actual);
     false
   | `Ok ->

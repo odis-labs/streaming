@@ -171,7 +171,7 @@ let () =
   T.group "Sink.buffer" [
     t "empty buffer, no input" ~actual:(into (Sink.buffer 0) Stream.empty) ~expected:[||];
     T.raises "must fail on negative size"
-      ~exn:(Invalid_argument "Streaming.Sink.buffer: negative buffer size")
+      ~cmp:(fun exn -> exn = Invalid_argument "Streaming.Sink.buffer: negative buffer size")
       (fun () -> Sink.buffer (-1));
     t "size 4, no input" ~actual:(into (Sink.buffer 4) Stream.empty) ~expected:[||];
     t "size 4, input 3" ~actual:(into (Sink.buffer 4) (0-<3)) ~expected:[|0; 1; 2|];
