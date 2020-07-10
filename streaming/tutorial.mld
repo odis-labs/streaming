@@ -1,0 +1,74 @@
+
+
+{0 Streaming - Tutorial}
+
+{1 Creating a sink}
+
+Implementing custom sinks is useful to create a collection of reusable
+streaming consumers for your application.
+
+The following example demonstrates a sink that consumes all elements into a list:
+
+{[
+  let list_sink =
+    let init () = [] in
+    let push acc x = x :: acc in
+    let stop acc = List.rev acc in
+    Sink.make ~init ~push ~stop ()
+]}
+
+Alternatively, use of the provided sinks in {!module:Streaming.Sink}.
+
+
+{2 State management in sinks}
+
+The internal state in sinks can hold an accumulator value or a resource
+used to consume input. For simple sinks such as [list_sink] above, the
+initial state is a plain list value, updated with [push] and reversed on
+[stop].  For more complex sinks that have to manage effectful resources
+such as files, database handlers, or mutable accumulators it is important
+to follow some safety rules and recommendations.
+
+{3 Lazy state initialization}
+
+Computations in streaming are always lazy and delay resource initialization
+until data needs to be pulled from sources or pushed into sinks. This is a
+useful property to have to avoid excessive or unnecessary resource
+utilization and leaks.
+
+To achieve this, state needs to be lazy, both when initialized and when
+terminated. Let's define a sink that writes lines to an output channel as
+an example:
+
+{[
+(* Trace calls to open/close to see if they're being used. *)
+#trace open_out
+#trace close_out
+
+let write_lines file =
+  let init () = lazy (open_out file) in
+  let stop lazy_chan =
+    if Lazy.is_val lazy_chan then
+      close_out (Lazy.force lazy_chan) in
+  let push lazy_chan x =
+    output_string (Lazy.force lazy_chan) (x ^ "\n");
+    lazy_chan in
+  Sink.make () ~init ~stop ~push
+]}
+
+Let look at how state is managed in this sink:
+
+- [init] is lazy, delaying the channel creation until it's needed in [push];
+- [stop] does not force the lazy state if it has not be forced by [push];
+- [push] forces the lazy state, actually opening the output channel this way.
+
+Concretely, this means that the following code will not open any files at all:
+
+{[
+Stream.(of_list ["a"; "b"; "c"] |> take 0 |> into (write_lines "/tmp/data.txt"))
+]}
+
+Similar considerations should be taken care when defining [fill] in
+{!val:Streaming.Sink.make}. When possible, checking if a sink's state is full
+should be a lazy and cheap operation.
+
