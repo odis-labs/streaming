@@ -246,7 +246,7 @@ type ('top, 'a, 'b) flat_map =
   } -> ('top, 'a, 'b) flat_map
 
 
-let _flat_map f (Sink top) =
+let flat_map f (Sink top) =
   let init () = Flat_map_top (top.init ()) in
   let push s x =
     match s with
