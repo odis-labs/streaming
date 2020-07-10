@@ -355,13 +355,14 @@ let nth_pure n =
 
 
 let nth n =
-  let r = ref (Obj.magic 0) in
-  let init () = 0 in
-  let push s x =
-    if s = n then r := x;
-    s + 1 in
-  let full s = s > n in
-  let stop s = if full s then Some !r else None in
+  let i = ref 0 in
+  let init () = None in
+  let push r x =
+    let r' = if !i = n then Some x else r in
+    incr i;
+    r' in
+  let full = function None -> false | Some _ -> true in
+  let stop x = x in
   Sink { init; push; full; stop }
 
 
