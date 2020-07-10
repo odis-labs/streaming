@@ -155,6 +155,22 @@ let () =
     ~actual:S.(to_list (drop_while (fun _ -> true) (of_list [0; 1; 2])));
   ];
 
+  (* let t = T.test T.(pair (list char) (list int)) ~verbose in *)
+  (* T.group "Stream.unzip" [ *)
+  (*   t "empty" ~expected:([], []) ~actual:begin *)
+  (*     let left, right = S.(unzip empty) in *)
+  (*     S.to_list left, S.to_list right *)
+  (*   end; *)
+  (*   t "single" ~expected:(['a'], [10]) ~actual:begin *)
+  (*     let left, right = S.(unzip (single ('a', 10))) in *)
+  (*     S.to_list left, S.to_list right *)
+  (*   end; *)
+  (*   t "multiple" ~expected:(['a'; 'b'; 'c'], [10; 20; 30]) ~actual:begin *)
+  (*     let left, right = S.(unzip (of_list [('a', 10); ('b', 20); ('c', 30)])) in *)
+  (*     S.to_list left, S.to_list right *)
+  (*   end; *)
+  (* ]; *)
+
   let t = T.test T.(list (pair int int)) ~verbose in
   T.group "Stream.indexed" [
     t "empty" ~expected:[] ~actual:S.(to_list (indexed empty));
