@@ -221,7 +221,7 @@ let each f (Source src) =
 let next (Source src) =
   let go s =
     match src.pull s with
-    | Some (x, s') -> Some (x, Source { src with init = fun () -> s' })
+    | Some (x, s') -> Some (x, Source { src with init = (fun () -> s') })
     | _ -> None
   in
   let s0 = src.init () in
@@ -231,11 +231,10 @@ let next (Source src) =
 
 
 let file path : string t =
-  Source {
-    init = (fun () -> print_endline "opening"; open_in path);
-    pull = (fun ic -> Some (input_line ic, ic));
-    stop = (fun ic -> print_endline "closing"; close_in ic);
-  }
+  let init () = lazy (open_in path) in
+  let stop ic = if Lazy.is_val ic then close_in (Lazy.force ic) in
+  let pull ic = Some (input_line (Lazy.force ic), ic) in
+  Source { init; stop; pull }
 
 
 let dispose (Source src) =
