@@ -247,8 +247,8 @@ let flatten nested =
 let cycle ?times:(n = -1) this =
   if n = 0 then empty else
   if n = 1 then this else
-  let i = ref 1 in
   let stream (Sink k) =
+    let i = ref 1 in
     let rec stop r =
       if k.full r || !i = n then k.stop r else
       (incr i;
