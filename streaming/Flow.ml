@@ -93,30 +93,24 @@ let buffer n =
   if n <= 0 then
     invalid_arg "Streaming.Flow.buffer: invalid buffer size, must be (> 0).";
   let flow (Sink k) =
-    let buf = ref [||] in
-    let idx = ref 0 in
-    let reset () =
-      buf := Array.make n (Obj.magic 0);
-      idx := 0 in
-    let init () = reset (); k.init () in
-    let push acc x =
-      Array.set !buf !idx x;
-      if !idx = n - 1 then begin
-        let x = !buf in
-        reset ();
-        k.push acc x
-      end else begin
-        incr idx;
-        acc
-      end in
-    let stop acc =
-      let acc =
-        if !idx > 0 && !idx < n then begin
-          let x = Array.sub !buf 0 !idx in
+    let buf = Array.make n (Obj.magic 0) in
+    let init () = (0, k.init ()) in
+    let push (i, acc) x =
+      Array.set buf i x;
+      if i = n - 1 then begin
+        let x = buf in
+        (0, k.push acc x)
+      end else (i + 1, acc)
+    in
+    let full (_, acc) = k.full acc in
+    let stop (i, acc) =
+      k.stop begin
+        if i > 0 && i < n then
+          let x = Array.sub buf 0 i in
           k.push acc x
-        end else acc in
-      k.stop acc in
-    Sink { k with init; push; stop } in
+        else acc end
+    in
+    Sink { init; stop; full; push } in
   { flow }
 
 
