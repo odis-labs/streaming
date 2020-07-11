@@ -217,6 +217,39 @@ let () =
       ~actual:(into Sink.(map String.length string) (Stream.of_list ["a"; "b"; "c"]));
   ];
 
+  let t = T.test ~verbose T.int in
+  T.group "Sink.premap" [
+    t "no input" ~expected:0
+      ~actual:(into Sink.(premap int_of_string sum) Stream.empty) ;
+    t "finite" ~expected:6
+      ~actual:(into Sink.(premap int_of_string sum) (Stream.of_list ["1"; "3"; "2"]));
+  ];
+
+  let t = T.test ~verbose T.int in
+  T.group "Sink.prefilter" [
+    t "empty" ~expected:0
+      ~actual:(into Sink.(prefilter (Fun.const true) sum) Stream.empty) ;
+    t "filter none" ~expected:0
+      ~actual:(into Sink.(prefilter (Fun.const false) sum) (Stream.of_list [1; 3; 2])) ;
+    t "filter all" ~expected:6
+      ~actual:(into Sink.(prefilter (Fun.const true) sum) (Stream.of_list [1; 3; 2])) ;
+    t "filter even" ~expected:2
+      ~actual:(into Sink.(prefilter (fun x -> x mod 2 = 0) sum) (Stream.of_list [1; 3; 2]));
+  ];
+
+  let t = T.test ~verbose T.int in
+  T.group "Sink.prefilter_map" [
+    t "empty" ~expected:0
+      ~actual:(into Sink.(prefilter_map (Fun.const None) sum) Stream.empty) ;
+    t "filter none" ~expected:0
+      ~actual:(into Sink.(prefilter_map (Fun.const None) sum) (Stream.of_list [1; 3; 2])) ;
+    t "filter all" ~expected:6
+      ~actual:(into Sink.(prefilter_map (fun x -> Some x) sum) (Stream.of_list [1; 3; 2])) ;
+    t "filter even and multiply by 5" ~expected:10
+      ~actual:(into Sink.(prefilter_map (fun x -> if x mod 2 = 0 then Some (x * 5) else None) sum)
+                 (Stream.of_list [1; 3; 2]));
+  ];
+
   let t = T.test ~verbose T.(pair int int) in
   T.group "Sink.zip" [
     t "no input" ~expected:(0, 0) ~actual:(into Sink.(zip len sum) Stream.empty);
