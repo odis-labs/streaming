@@ -36,6 +36,13 @@ let filter = select
 
 let reject pred = select (fun x -> not (pred x))
 
+let filter_map f =
+  let flow (Sink k) =
+    let push r x = match f x with
+      | Some x' -> k.push r x'
+      | None -> r in
+    Sink { k with push } in
+  { flow }
 
 let take n =
   let flow (Sink k) =

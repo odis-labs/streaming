@@ -95,6 +95,19 @@ let () =
   ];
 
   let t = T.test T.(list int) ~verbose in
+  T.group "Source.filter_map" [
+    t "empty" ~expected:[]
+      ~actual:(to_list Source.(filter_map (fun _ -> None) Source.empty));
+    t "filter none" ~expected:[]
+      ~actual:(to_list Source.(filter_map (fun _ -> None) (list [0; 1; 2])));
+    t "filter all" ~expected:[0; 1; 2]
+      ~actual:(to_list Source.(filter_map (fun x -> Some x) (list [0; 1; 2])));
+    t "filter even and divides them by two" ~expected:[0; 1; 2]
+    ~actual:(to_list Source.(filter_map (fun x -> if x mod 2 = 0 then Some (x / 2) else None)
+                               (list [0; 1; 2; 4])));
+  ];
+
+  let t = T.test T.(list int) ~verbose in
   T.group "Source.take" [
     t "take 0, empty" ~expected:[]
       ~actual:(to_list Source.(take 0 Source.empty));

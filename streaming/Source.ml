@@ -159,12 +159,25 @@ let reject p src =
 let filter = select
 
 
-
 let map f (Source src) =
   let pull s =
     match src.pull s with
     | Some (a, s') -> Some (f a, s')
     | None -> None in
+  Source { src with pull }
+
+
+let filter_map f (Source src) =
+  let pull s =
+    let rec loop s =
+      match src.pull s with
+      | Some (a, s')  ->
+        begin match f a with
+          | Some a -> Some (a, s')
+          | None -> loop s'
+        end
+      | None -> None in
+    loop s in
   Source { src with pull }
 
 

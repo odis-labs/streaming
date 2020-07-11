@@ -153,6 +153,10 @@ module Source : sig
   val filter : ('a -> bool) -> 'a t -> 'a t
   (** A source that includes only the elements that satisfy a predicate. *)
 
+  val filter_map : ('a -> 'b option) -> 'a t -> 'b t
+  (** Filter_map f source applies f to every element x of source, discard it if
+   * f x is None, and keeps y if f x = Some y *)
+
   val take : int -> 'a t -> 'a t
   (** Take first [n] elements from the source and discard the rest. *)
 
@@ -654,6 +658,9 @@ module Sink : sig
   (** [prefilter predicate sink] is a sink that filter the input value for
       [sink]. *)
 
+  val prefilter_map : ('b -> 'a option) -> ('a, 'r) t -> ('b, 'r) t
+  (** [prefilter_map f sink] is a sink that applies f to the input values and
+   * both filter those which returned None and map the others *)
 
   (** {1 Resource management} *)
 
@@ -1017,6 +1024,10 @@ module Stream : sig
 
   val filter : ('a -> bool) -> 'a t -> 'a t
   (** A stream that includes only the elements that satisfy a predicate. *)
+
+  val filter_map : ('a -> 'b option) -> 'a t -> 'b t
+  (** Filter_map f source applies f to every element x of source, discard it if
+   * f x is None, and keeps y if f x = Some y *)
 
   val take : int -> 'a t -> 'a t
   (** Take first [n] elements from the stream and discard the rest. *)

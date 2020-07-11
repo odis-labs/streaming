@@ -39,6 +39,10 @@ let prefilter f (Sink k) =
   Sink { k with push = (fun acc x -> if f x then k.push acc x else acc ) }
 
 
+let prefilter_map f (Sink k) =
+  Sink { k with push = (fun acc x -> match f x with Some y -> k.push acc y
+                                                  | None ->  acc ) }
+
 let zip (Sink l) (Sink r) =
   let init () = (l.init (), r.init ()) in
   let push (l_acc, r_acc) x = (l.push l_acc x, r.push r_acc x) in
