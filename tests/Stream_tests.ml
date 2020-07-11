@@ -100,6 +100,19 @@ let () =
   ];
 
   let t = T.test T.(list int) ~verbose in
+  T.group "Stream.filter_map" [
+    t "empty" ~expected:[]
+      ~actual:S.(to_list (filter_map (fun _ -> None) empty));
+    t "filter none" ~expected:[]
+      ~actual:S.(to_list (filter_map (fun _ -> None) (S.of_list [0; 1; 2])));
+    t "filter all and convert from string" ~expected:[0; 1; 2]
+      ~actual:S.(to_list (filter_map (fun x -> Some (int_of_string x)) (S.of_list ["0"; "1"; "2"])));
+    t "filter even and divides by two" ~expected:[0; 1; 2]
+      ~actual:S.(to_list (filter_map (fun x -> if x mod 2 = 0 then Some (x / 2) else None)
+                            (S.of_list [0; 1; 2; 4])));
+  ];
+
+  let t = T.test T.(list int) ~verbose in
   T.group "Stream.take" [
     t "take 0, empty" ~expected:[]
       ~actual:S.(to_list (take 0 empty));

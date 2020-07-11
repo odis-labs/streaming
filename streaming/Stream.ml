@@ -297,6 +297,8 @@ let map f this =
 let filter pred this =
   via (Flow.filter pred) this
 
+let filter_map f this =
+  via (Flow.filter_map f) this
 
 let take n this =
   via (Flow.take n) this
