@@ -78,6 +78,16 @@ let () =
       ~actual:S.(to_list (unfold 0 (function 2 -> None | x -> Some (x, x+1))));
   ];
 
+  let t = T.test T.(list int) ~verbose in
+  T.group "Stream.of_iter" [
+    t "empty" ~expected:[] ~actual:S.(to_list (of_iter (fun k -> List.iter k [])));
+    t "small" ~expected:[0; 1; 2]
+      ~actual:S.(to_list (of_iter (fun k -> List.iter k [0; 1; 2])));
+    t "infinite, take 0" ~expected:[]
+      ~actual:S.(to_list (take 0 (of_iter (fun k -> assert false))));
+    t "infinite, take 2" ~expected:[0; 0]
+      ~actual:S.(to_list (take 2 (of_iter (fun k -> while true do k 0 done))));
+  ];
 
   let t = T.test T.(list int) ~verbose in
   T.group "Stream.map" [

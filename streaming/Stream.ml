@@ -90,6 +90,23 @@ let to_string stream = into Sink.(premap (String.make 1) string) stream
 let of_string xs = from (Source.string xs)
 
 
+exception Stop_iter
+
+let of_iter iter =
+  let stream (Sink k) =
+    let go r =
+      if k.full r then r else
+      let out = ref r in
+      try
+        iter (fun x ->
+          out := k.push !out x;
+          if k.full !out then raise Stop_iter);
+          !out
+      with Stop_iter -> !out in
+    bracket go ~init:k.init ~stop:k.stop in
+  { stream }
+
+
 (* Sinks *)
 
 let each f =
