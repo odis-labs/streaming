@@ -396,19 +396,22 @@ let split ~by:pred self =
     in
   { stream }
 
-
-
-let group ?equal:(_ =Pervasives.(=)) self =
+let group ~break self =
   let stream (Sink k) =
-    let push r x =
-      k.push r x
+    let send r xs = k.push r (of_list (List.rev xs)) in
+    let init () = (k.init (), []) in
+    let push (r, acc) x =
+      match acc with
+      | [] -> (r, [x])
+      | h :: _ ->
+        if break h x then (send r acc, [x])
+        else (r, x :: acc)
     in
-    self.stream (Sink { k with push })
+    let stop (r, acc) = k.stop (send r acc) in
+    let full (r, _) = k.full r in
+    self.stream (Sink { init; push; full; stop })
     in
   { stream }
-
-
-
 
 (* IO *)
 

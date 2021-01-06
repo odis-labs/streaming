@@ -1120,9 +1120,9 @@ module Stream : sig
   val partition : int -> 'a t -> 'a t t
   (** [partition n] partitions the stream into sub-streams of size [n]. *)
 
-  (* TODO *)
-  (* val group : by *)
-
+  val group : break:('a -> 'a -> bool) -> 'a t -> 'a t t
+  (** [group ~break stream] splits [stream] each time two consecutive
+     elements [x] and [y] verify [break x y]. *)
 
   (* TODO: Add variants for splitting once. Consider renaming: divide. *)
   (* split, partition, divide, etc is too confusing. *)
