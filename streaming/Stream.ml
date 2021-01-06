@@ -398,17 +398,17 @@ let split ~by:pred self =
 
 let group ~break self =
   let stream (Sink k) =
-    let init () = (k.init (), None, empty) in
-    let push (r, maybe_previous, acc) x =
-      match maybe_previous with
-      | None -> (r, Some x, acc ++ single x)
-      | Some previous ->
-        if break previous x then
-          (k.push r acc, Some x, single x)
-        else (r, Some x, acc ++ single x)
+    let send r xs = k.push r (of_list (List.rev xs)) in
+    let init () = (k.init (), []) in
+    let push (r, acc) x =
+      match acc with
+      | [] -> (r, [x])
+      | h :: _ ->
+        if break h x then (send r acc, [x])
+        else (r, x :: acc)
     in
-    let stop (r, _, acc) = k.stop (k.push r acc) in
-    let full (r, _, _) = k.full r in
+    let stop (r, acc) = k.stop (send r acc) in
+    let full (r, _) = k.full r in
     self.stream (Sink { init; push; full; stop })
     in
   { stream }
