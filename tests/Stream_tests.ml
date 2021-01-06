@@ -315,6 +315,16 @@ let () =
       ~actual:S.(to_list (map to_list (partition 0 (0-<5))));
   ];
 
+  let t = T.test T.(list (list int)) ~verbose in
+  T.group "Stream.group" [
+    t "empty" ~expected:[[]]
+      ~actual:S.(to_list (map to_list (group ~break:( <> ) empty)));
+    t "of_list" ~expected:[[1;1];[2];[3;3]]
+      ~actual:S.(to_list (map to_list (group ~break:( <> ) (of_list [1;1;2;3;3]))));
+    t "repeat,concat" ~expected:[[1;1];[2;2;2]]
+      ~actual:S.(to_list (map to_list (group ~break:( <> ) (concat (repeat ~times:2 1) (repeat ~times:3 2)) )));
+  ];
+
   let t = T.test T.(list int) ~verbose in
   T.group "Stream.interpose" [
     t "empty" ~expected:[]
