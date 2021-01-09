@@ -1130,6 +1130,20 @@ module Stream : sig
   (** [split ~by:predicate stream] splits [stream] whe *)
 
 
+  val through : ('a, 'r) sink -> 'a t -> 'r t
+  (** [through sink stream] repeatedly processes [stream] elements with [sink]
+      streaming computed results.
+
+      {b Note:} The provided sink might consume the whole input if it never
+      fills, or if the stream terminates before filling the sink.
+
+      {[
+      let large_numbers =
+        [1; 100; 2; 200; 3; 300]
+        |> Stream.of_list
+        |> Stream.through (Sink.find ~where:(fun x -> x > 10)) in
+      assert (Stream.to_list large_numbers = [Some 100; Some 200; Some 300])
+      ]} *)
 
   (** {1 Consumers}
 

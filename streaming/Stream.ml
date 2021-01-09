@@ -396,6 +396,8 @@ let split ~by:pred self =
     in
   { stream }
 
+let through sink self =
+  via (Flow.through sink) self
 
 
 let group ?equal:(_ =Pervasives.(=)) self =
