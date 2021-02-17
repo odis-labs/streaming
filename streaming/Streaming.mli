@@ -1135,7 +1135,8 @@ module Stream : sig
   (* TODO: Add variants for splitting once. Consider renaming: divide. *)
   (* split, partition, divide, etc is too confusing. *)
   val split: by:('a -> bool) -> 'a t -> 'a t t
-  (** [split ~by:predicate stream] splits [stream] whe *)
+  (** [split ~by:predicate stream] splits [stream] when [predicate x] is [true]
+      for some stream item [x]. *)
 
 
   val through : ('a, 'r) sink -> 'a t -> 'r t
