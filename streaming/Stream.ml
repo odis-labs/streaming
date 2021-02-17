@@ -375,7 +375,7 @@ let partition n self =
       if i = n then (k.push r acc, 1, single x)
       else (r, i + 1, acc ++ single x) in
     let stop (r, i, acc) =
-      let r' = if i < n then (k.push r acc) else r in
+      let r' = if i <= n then (k.push r acc) else r in
       k.stop r' in
     let full (r, _, _) = k.full r in
     self.stream (Sink { init; push; full; stop })

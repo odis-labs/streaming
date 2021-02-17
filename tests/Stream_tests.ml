@@ -84,7 +84,7 @@ let () =
     t "small" ~expected:[0; 1; 2]
       ~actual:S.(to_list (of_iter (fun k -> List.iter k [0; 1; 2])));
     t "infinite, take 0" ~expected:[]
-      ~actual:S.(to_list (take 0 (of_iter (fun k -> assert false))));
+      ~actual:S.(to_list (take 0 (of_iter (fun _k -> assert false))));
     t "infinite, take 2" ~expected:[0; 0]
       ~actual:S.(to_list (take 2 (of_iter (fun k -> while true do k 0 done))));
   ];
@@ -313,6 +313,14 @@ let () =
       ~actual:S.(to_list (map to_list (partition 0 empty)));
     t "size 0, non-empty" ~expected:[]
       ~actual:S.(to_list (map to_list (partition 0 (0-<5))));
+    
+    t "issue-12"
+      ~expected:[[0; 1; 2; 3; 4; 5; 6; 7; 8; 9]]
+      ~actual:
+        (S.of_array [|0; 1; 2; 3; 4; 5; 6; 7; 8; 9|]
+         |> S.partition 10
+         |> S.map (fun x -> x |> S.to_list)
+         |> S.to_list);
   ];
 
   let t = T.test T.(list int) ~verbose in
