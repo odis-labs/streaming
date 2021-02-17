@@ -133,7 +133,11 @@ let through (Sink k0) =
         acc0 := k0.push !acc0 x0;
         acc1
       end in
-    Sink { k1 with push } in
+    let stop acc1 =
+      let x1 = k0.stop !acc0 in
+      k1.push acc1 x1 |> k1.stop
+    in
+    Sink { k1 with push; stop } in
   { flow }
 
 
