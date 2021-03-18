@@ -215,7 +215,7 @@ val i'm_a_source_i_must_not_leak : unit -> string source = <fun>
 
 # let i'm_a_sink_i_must_not_leak () =
     Sink.make
-      ~init:(fun () -> `Dangerous_output)
+      ~init:`Dangerous_output
       ~push:(fun `Dangerous_output x -> `Dangerous_output)
       ~stop:(fun `Dangerous_output ->
           print_endline "Stopping output... That was close!")

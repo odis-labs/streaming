@@ -3,7 +3,7 @@ open Utils
 
 type ('a, 'b) t = ('a, 'b) sink =
   Sink : {
-    init : unit -> 'acc;
+    init : 'acc;
     push : 'acc -> 'a -> 'acc;
     full : 'acc -> bool;
     stop : 'acc -> 'b;
@@ -15,9 +15,12 @@ let make ~init ~push ?(full=fun _ -> false) ~stop () =
   Sink { init; push; full; stop }
 
 
+let is_full (Sink k) = k.full k.init
+
+
 let fill b =
   Sink {
-    init = (fun () -> ());
+    init = ();
     push = (fun () _ -> ());
     full = (fun () -> true);
     stop = (fun () -> b)
@@ -43,8 +46,10 @@ let prefilter_map f (Sink k) =
   Sink { k with push = (fun acc x -> match f x with Some y -> k.push acc y
                                                   | None ->  acc ) }
 
+let push x (Sink k) = Sink { k with init = k.push k.init x }
+
 let zip (Sink l) (Sink r) =
-  let init () = (l.init (), r.init ()) in
+  let init = (l.init, r.init) in
   let push (l_acc, r_acc) x = (l.push l_acc x, r.push r_acc x) in
   let full (l_acc, r_acc) = (l.full l_acc || r.full r_acc) in
   let stop (l_acc, r_acc) = (l.stop l_acc, r.stop r_acc) in
@@ -52,7 +57,7 @@ let zip (Sink l) (Sink r) =
 
 
 let zip_left (Sink l) (Sink r) =
-  let init () = (l.init (), r.init ()) in
+  let init = (l.init, r.init) in
   let push (l_acc, r_acc) x = (l.push l_acc x, r.push r_acc x) in
   let full (l_acc, r_acc) = (l.full l_acc || r.full r_acc) in
   let stop (l_acc, r_acc) =
@@ -63,7 +68,7 @@ let zip_left (Sink l) (Sink r) =
 
 
 let zip_right (Sink l) (Sink r) =
-  let init () = (l.init (), r.init ()) in
+  let init = (l.init, r.init) in
   let push (l_acc, r_acc) x = (l.push l_acc x, r.push r_acc x) in
   let full (l_acc, r_acc) = (l.full l_acc || r.full r_acc) in
   let stop (l_acc, r_acc) =
@@ -74,7 +79,7 @@ let zip_right (Sink l) (Sink r) =
 
 
 let zip_with f (Sink l) (Sink r) =
-  let init () = (l.init (), r.init ()) in
+  let init = (l.init, r.init) in
   let push (l_acc, r_acc) x = (l.push l_acc x, r.push r_acc x) in
   let full (l_acc, r_acc) = (l.full l_acc || r.full r_acc) in
   let stop (l_acc, r_acc) =
@@ -87,16 +92,37 @@ let (<&>) = zip
 let (<& ) = zip_left
 let ( &>) = zip_right
 
+type ('a, 'r) many =
+  Many : {
+    acc : 'acc;
+    push : 'acc -> 'a -> 'acc;
+    full : 'acc -> bool;
+    stop : 'acc -> 'r;
+  } -> ('a, 'r) many
+
+(* This has a lot of closure wrapping. Benchmark to evaluate the cost. Using an immediate acc could be faster. *)
+let many sinks =
+  let init = sinks in
+  let push list x =
+    List.map (fun (Sink k) ->
+      let init = if k.full (k.init) then k.init else k.push (k.init) x in Sink {
+      k with init
+    }) list in
+  let full list = List.for_all (fun (Sink k) -> k.full (k.init)) list in
+  let stop list =
+    List.map (fun (Sink k) -> k.stop (k.init)) list in
+  Sink { init; push; full; stop }
+
 
 let unzip (Sink l) (Sink r) =
-  let init () = (l.init (), r.init ()) in
+  let init = (l.init, r.init) in
   let push (l_acc, r_acc) (x, y) = (l.push l_acc x, r.push r_acc y) in
   let full (l_acc, r_acc) = (l.full l_acc || r.full r_acc) in
   let stop (l_acc, r_acc) = (l.stop l_acc, r.stop r_acc) in
   Sink { init; push; full; stop }
 
 let unzip_left (Sink l) (Sink r) =
-  let init () = (l.init (), r.init ()) in
+  let init = (l.init, r.init) in
   let push (l_acc, r_acc) (x, y) = (l.push l_acc x, r.push r_acc y) in
   let full (l_acc, r_acc) = (l.full l_acc || r.full r_acc) in
   let stop (l_acc, r_acc) =
@@ -107,7 +133,7 @@ let unzip_left (Sink l) (Sink r) =
 
 
 let unzip_right (Sink l) (Sink r) =
-  let init () = (l.init (), r.init ()) in
+  let init = (l.init, r.init) in
   let push (l_acc, r_acc) (x, y) = (l.push l_acc x, r.push r_acc y) in
   let full (l_acc, r_acc) = (l.full l_acc || r.full r_acc) in
   let stop (l_acc, r_acc) =
@@ -118,7 +144,7 @@ let unzip_right (Sink l) (Sink r) =
 
 
 let unzip_with f (Sink l) (Sink r) =
-  let init () = (l.init (), r.init ()) in
+  let init = (l.init, r.init) in
   let push (l_acc, r_acc) (x, y) = (l.push l_acc x, r.push r_acc y) in
   let full (l_acc, r_acc) = (l.full l_acc || r.full r_acc) in
   let stop (l_acc, r_acc) =
@@ -133,7 +159,7 @@ let (<* ) = unzip_left
 let ( *>) = unzip_right
 
 let distribute (Sink l) (Sink r) =
-  let init () = (l.init (), r.init (), true) in
+  let init = (l.init, r.init, true) in
   let push (l_acc, r_acc, flag) x =
     if flag then (l.push l_acc x, r_acc, not flag)
     else (l_acc, r.push r_acc x, not flag) in
@@ -148,7 +174,7 @@ type ('a, 'b) race =
   | Both of 'a * 'b
 
 let race (Sink l) (Sink r) =
-  let init () = Both (l.init (), r.init ()) in
+  let init = Both (l.init, r.init) in
   let push state x =
     match state with
     | Both (l_acc, r_acc) ->
@@ -171,13 +197,13 @@ let (<|>) = race
 
 
 let seq (Sink l) (Sink r) =
-  let init () = `L (l.init ()) in
+  let init = `L (l.init) in
   let push state x =
     match state with
     | `L l_acc ->
       let l_acc' = l.push l_acc x in
       if l.full l_acc'
-      then `R (l.stop l_acc', r.init ())
+      then `R (l.stop l_acc', r.init)
       else `L l_acc
     | `R (l_r, r_acc) -> `R (l_r, r.push r_acc x) in
   let full = function
@@ -186,7 +212,7 @@ let seq (Sink l) (Sink r) =
   let stop = function
     | `L l_acc ->
       let l_r = l.stop l_acc in
-      let r_r = r.stop (r.init ()) in
+      let r_r = r.stop (r.init) in
       (l_r, r_r)
     | `R (l_r, r_acc) ->
       let r_r = r.stop r_acc in
@@ -195,13 +221,13 @@ let seq (Sink l) (Sink r) =
 
 
 let seq_left (Sink l) (Sink r) =
-  let init () = `L (l.init ()) in
+  let init = `L (l.init) in
   let push state x =
     match state with
     | `L l_acc ->
       let l_acc' = l.push l_acc x in
       if l.full l_acc'
-      then `R (l.stop l_acc', r.init ())
+      then `R (l.stop l_acc', r.init)
       else `L l_acc
     | `R (l_r, r_acc) -> `R (l_r, r.push r_acc x) in
   let full = function
@@ -216,13 +242,13 @@ let seq_left (Sink l) (Sink r) =
 
 
 let seq_right (Sink l) (Sink r) =
-  let init () = `L (l.init ()) in
+  let init = `L (l.init) in
   let push state x =
     match state with
     | `L l_acc ->
       let l_acc' = l.push l_acc x in
       if l.full l_acc'
-      then (ignore (l.stop l_acc'); `R (r.init ()))
+      then (ignore (l.stop l_acc'); `R (r.init))
       else `L l_acc
     | `R r_acc -> `R (r.push r_acc x) in
   let full = function
@@ -231,7 +257,7 @@ let seq_right (Sink l) (Sink r) =
   let stop = function
     | `L l_acc ->
       ignore (l.stop l_acc);
-      r.stop (r.init ())
+      r.stop (r.init)
     | `R r_acc -> r.stop r_acc in
   Sink { init; push; full; stop }
 
@@ -251,7 +277,7 @@ type ('top, 'a, 'b) flat_map =
 
 
 let flat_map f (Sink top) =
-  let init () = Flat_map_top (top.init ()) in
+  let init = Flat_map_top (top.init) in
   let push s x =
     match s with
     | Flat_map_top acc ->
@@ -260,7 +286,7 @@ let flat_map f (Sink top) =
         let r = top.stop acc' in
         let Sink sub = f r in
         Flat_map_sub {
-          init = sub.init ();
+          init = sub.init;
           push = sub.push;
           full = sub.full;
           stop = sub.stop;
@@ -274,7 +300,7 @@ let flat_map f (Sink top) =
   let stop = function
     | Flat_map_top acc ->
       let Sink sub = f (top.stop acc) in
-      sub.stop (sub.init ())
+      sub.stop (sub.init)
     | Flat_map_sub sub -> sub.stop sub.init in
   Sink { init; push; full; stop }
 
@@ -282,7 +308,7 @@ let (>>=) m f = flat_map f m
 
 let fold f z =
   Sink {
-    init = (fun () -> z);
+    init = (z);
     push = f;
     full = (fun _ -> false);
     stop = (fun r -> r);
@@ -290,7 +316,7 @@ let fold f z =
 
 let fold_while full f z =
   Sink {
-    init = (fun () -> z);
+    init = (z);
     push = f;
     full = full;
     stop = (fun r -> r);
@@ -299,7 +325,7 @@ let fold_while full f z =
 
 let full =
   Sink {
-    init = (fun () -> ());
+    init = (());
     push = (fun () _ -> ());
     full = (fun () -> true);
     stop = (fun () -> ());
@@ -307,7 +333,7 @@ let full =
 
 let drain =
   Sink {
-    init = (fun () -> ());
+    init = (());
     push = (fun () _ -> ());
     full = (fun () -> false);
     stop = (fun () -> ());
@@ -315,7 +341,7 @@ let drain =
 
 let each f =
   Sink {
-    init = (fun () -> ());
+    init = (());
     push = (fun () x -> f x);
     full = (fun () -> false);
     stop = (fun () -> ());
@@ -323,14 +349,14 @@ let each f =
 
 let len =
   Sink {
-    init = (fun () -> 0);
+    init = (0);
     push = (fun acc _ -> acc + 1);
     full = (fun _ -> false);
     stop = (fun acc -> acc);
   }
 
 let mean =
-  let init () = (0.0, 0.0) in
+  let init = (0.0, 0.0) in
   let push (r, n) x =
      let n' = n +. 1.0 in
     ((r +. (x -. r) /. n'), n') in
@@ -341,7 +367,7 @@ let mean =
 
 
 let nth_pure n =
-  let init () = `Searching 0 in
+  let init = `Searching 0 in
   let push s x =
     match s with
     | `Searching i when eq_int i n -> `Found x
@@ -360,7 +386,7 @@ let nth_pure n =
 
 let nth n =
   let i = ref 0 in
-  let init () = None in
+  let init = None in
   let push r x =
     let r' = if !i = n then Some x else r in
     incr i;
@@ -372,7 +398,7 @@ let nth n =
 
 let first =
   Sink {
-    init = (fun () -> None);
+    init = (None);
     push = (fun _ x -> Some x);
     full = (function None -> false | _ -> true);
     stop = (fun acc -> acc);
@@ -380,7 +406,7 @@ let first =
 
 let last =
   Sink {
-    init = (fun () -> None);
+    init = (None);
     push = (fun _ x -> Some x);
     full = (fun _ -> false);
     stop = (fun acc -> acc);
@@ -391,7 +417,7 @@ let last =
 
 let contains ~where:pred =
   Sink {
-    init = (fun () -> false);
+    init = (false);
     push = (fun found x -> if pred x then true else found);
     full = (fun found -> found);
     stop = (fun found -> found);
@@ -399,7 +425,7 @@ let contains ~where:pred =
 
 let find ~where:pred =
   Sink {
-    init = (fun () -> None);
+    init = (None);
     push = (fun none x -> if pred x then Some x else none);
     full = (function None -> false | _ -> true);
     stop = (fun acc -> acc);
@@ -408,7 +434,7 @@ let find ~where:pred =
 let index ~where:pred =
   let i = ref 0 in
   Sink {
-    init = (fun () -> false);
+    init = (false);
     push = (fun acc x -> if pred x then true else (incr i; acc));
     full = (fun found -> found);
     stop = (fun found -> if found then Some !i else None);
@@ -421,7 +447,7 @@ let maximum ~by:(>) =
     | Some y when y > x -> Some y
     | _ -> Some x in
   Sink {
-    init = (fun () -> None);
+    init = (None);
     push;
     full = (fun _ -> false);
     stop = (fun acc -> acc);
@@ -434,7 +460,7 @@ let minimum ~by:(<) =
     | Some y when y < x -> Some y
     | _ -> Some x in
   Sink {
-    init = (fun () -> None);
+    init = (None);
     push;
     full = (fun _ -> false);
     stop = (fun acc -> acc);
@@ -443,7 +469,7 @@ let minimum ~by:(<) =
 
 let is_empty =
   Sink {
-    init = (fun () -> true);
+    init = (true);
     push = (fun _ _ -> false);
     full = (fun _ -> false);
     stop = (fun acc -> acc);
@@ -451,7 +477,7 @@ let is_empty =
 
 let all ~where:pred =
   Sink {
-    init = (fun () -> true);
+    init = (true);
     push = (fun acc x -> pred x && acc);
     full = (fun acc -> not acc);
     stop = (fun acc -> acc);
@@ -460,7 +486,7 @@ let all ~where:pred =
 
 let any ~where:pred =
   Sink {
-    init = (fun () -> false);
+    init = (false);
     push = (fun acc x -> pred x || acc);
     full = (fun acc -> acc);
     stop = (fun acc -> acc);
@@ -473,7 +499,7 @@ let print =
 
 let rev_list =
   Sink {
-    init = (fun () -> []);
+    init = ([]);
     push = (fun acc x -> x :: acc);
     full = (fun _ -> false);
     stop = (fun acc -> acc);
@@ -482,7 +508,7 @@ let rev_list =
 
 let list =
   Sink {
-    init = (fun () -> []);
+    init = ([]);
     push = (fun acc x -> x :: acc);
     full = (fun _ -> false);
     stop = (fun acc -> List.rev acc);
@@ -490,7 +516,7 @@ let list =
 
 
 let array =
-  let init () = ([], 0) in
+  let init = ([], 0) in
   let push (acc, len) x = (x :: acc, len + 1) in
   let full _ = false in
   let stop (acc, len) =
@@ -512,7 +538,7 @@ let buffer n =
     invalid_arg "Streaming.Sink.buffer: negative buffer size";
   if n = 0 then fill [||] else
   let buf = ref (Array.make n (Obj.magic 0)) in
-  let init () = 0 in
+  let init = 0 in
   let push idx x =
     Array.set !buf idx x;
     idx + 1 in
@@ -525,9 +551,9 @@ let buffer n =
 
 
 
-let queue =
+let queue () =
   Sink {
-    init = Queue.create;
+    init = Queue.create ();
     push = (fun acc x -> Queue.add x acc; acc);
     full = (fun _ -> false);
     stop = (fun acc -> acc);
@@ -536,7 +562,7 @@ let queue =
 
 let sum =
   Sink {
-    init = (fun () -> 0);
+    init = (0);
     push = (+);
     full = (fun _ -> false);
     stop = (fun x -> x);
@@ -545,25 +571,25 @@ let sum =
 
 let product =
   Sink {
-    init = (fun () -> 1);
+    init = (1);
     push = (fun acc x -> acc * x);
     full = (fun x -> x = 0);
     stop = (fun x -> x);
   }
 
 
-let bytes =
+let bytes () =
   Sink {
-    init = (fun () -> Buffer.create 128);
+    init = (Buffer.create 128);
     push = (fun buf x -> Buffer.add_bytes buf x; buf);
     full = (fun _ -> false);
     stop = (fun buf -> Buffer.to_bytes buf);
   }
 
 
-let string =
+let string () =
   Sink {
-    init = (fun () -> Buffer.create 128);
+    init = (Buffer.create 128);
     push = (fun buf x -> Buffer.add_string buf x; buf);
     full = (fun _ -> false);
     stop = (fun buf -> Buffer.contents buf);
@@ -571,7 +597,7 @@ let string =
 
 
 let file path =
-  let init () = lazy (Stdlib.open_out path) in
+  let init = lazy (Stdlib.open_out path) in
   let stop chan =
     if Lazy.is_val chan
     then close_out (Lazy.force chan) in
@@ -582,7 +608,7 @@ let file path =
 
 let stderr =
   Sink {
-    init = (fun () -> ());
+    init = (());
     push = (fun () x -> output_string Pervasives.stderr (x ^ "\n"); flush Pervasives.stderr);
     full = (fun _ -> false);
     stop = (fun () -> ());
@@ -591,7 +617,7 @@ let stderr =
 
 let stdout =
   Sink {
-    init = (fun () -> ());
+    init = (());
     push = (fun () x -> output_string Pervasives.stdout (x ^ "\n"); flush Pervasives.stdout);
     full = (fun _ -> false);
     stop = (fun () -> ());
@@ -599,8 +625,10 @@ let stdout =
 
 
 let dispose (Sink snk) =
-  snk.stop (snk.init ())
+  snk.stop (snk.init)
 
+let stop (Sink snk) =
+  snk.stop (snk.init)
 
 module Syntax = struct
   let return = fill
@@ -626,7 +654,7 @@ module Applicative = struct
   let pure = fill
 
   let (<*>) (Sink l) (Sink r) =
-    let init () = (l.init (), r.init ()) in
+    let init = (l.init, r.init) in
     let push (l_acc, r_acc) x = (l.push l_acc x, r.push r_acc x) in
     let full (l_acc, r_acc) = (l.full l_acc || r.full r_acc) in
     let stop (l_acc, r_acc) = l.stop l_acc (r.stop r_acc) in

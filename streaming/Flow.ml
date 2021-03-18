@@ -46,7 +46,7 @@ let filter_map f =
 
 let take n =
   let flow (Sink k) =
-    let init () = (k.init (), 0) in
+    let init = (k.init, 0) in
     let push (acc, i) x = (k.push acc x, i + 1) in
     let full (acc, i) = k.full acc || i = n in
     let stop (acc, _) = k.stop acc in
@@ -56,7 +56,7 @@ let take n =
 
 let take_while pred =
   let flow (Sink k) =
-    let init () = (k.init (), true) in
+    let init = (k.init, true) in
     let push (acc, _) x =
       if pred x then (k.push acc x, true) else (acc, false) in
     let full (acc, taking) = k.full acc || not taking in
@@ -67,7 +67,7 @@ let take_while pred =
 
 let drop n =
   let flow (Sink k) =
-    let init () = (k.init (), 0) in
+    let init = (k.init, 0) in
     let push (acc, i) x =
       if i < n then (acc, i + 1)
       else (k.push acc x, i) in
@@ -79,7 +79,7 @@ let drop n =
 
 let drop_while p =
   let flow (Sink k) =
-    let init () = (k.init (), true) in
+    let init = (k.init, true) in
     let push (acc, dropping) x =
       if p x && dropping then (acc, true)
       else (k.push acc x, false) in
@@ -101,7 +101,7 @@ let buffer n =
     invalid_arg "Streaming.Flow.buffer: invalid buffer size, must be (> 0).";
   let flow (Sink k) =
     let buf = Array.make n (Obj.magic 0) in
-    let init () = (0, k.init ()) in
+    let init = (0, k.init) in
     let push (i, acc) x =
       Array.set buf i x;
       if i = n - 1 then begin
@@ -123,11 +123,11 @@ let buffer n =
 
 let through (Sink k0) =
   let flow (Sink k1) =
-    let acc0 = ref (k0.init ()) in
+    let acc0 = ref (k0.init) in
     let push acc1 x0 =
       if k0.full !acc0 then
         let x1 = k0.stop !acc0 in
-        acc0 := k0.init ();
+        acc0 := k0.init;
         k1.push acc1 x1
       else begin
         acc0 := k0.push !acc0 x0;

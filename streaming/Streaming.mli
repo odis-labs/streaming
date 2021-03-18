@@ -243,7 +243,7 @@ end
 
   {[
     let list_sink =
-      let init () = [] in
+      let init = [] in
       let push acc x = x :: acc in
       let stop acc = List.rev acc in
       Sink.make ~init ~push ~stop ()
@@ -324,6 +324,10 @@ module Sink : sig
   (** Type for sinks that consume elements of type ['a] and, once done, produce
       a value of type ['b]. *)
 
+  val is_full : ('a, 'r) t -> bool
+  (** [is_full sink] is [true] if [sink] is full. *)
+
+
   (** {1 Creating a sink}
 
     Implementing custom sinks is useful to create a collection of reusable
@@ -333,7 +337,7 @@ module Sink : sig
 
     {[
       let list_sink =
-        let init () = [] in
+        let init = [] in
         let push acc x = x :: acc in
         let stop acc = List.rev acc in
         Sink.make ~init ~push ~stop ()
@@ -355,7 +359,7 @@ module Sink : sig
       [full] returns [true]. *)
 
   val make
-    : init:(unit -> 'acc)
+    : init:'acc
     -> push:('acc -> 'a -> 'acc)
     -> ?full:('acc -> bool)
     -> stop:('acc -> 'r)
@@ -454,13 +458,13 @@ module Sink : sig
   val buffer : int -> ('a, 'a array) t
   (** Similar to {!val:array} buf will only consume [n] elements. *)
 
-  val queue : ('a, 'a Queue.t) t
+  val queue : unit -> ('a, 'a Queue.t) t
   (** Puts all input elements into a queue. *)
 
-  val string : (string, string) t
+  val string : unit -> (string, string) t
   (** Consumes and concatenates strings. *)
 
-  val bytes : (bytes, bytes) t
+  val bytes : unit -> (bytes, bytes) t
   (** Consumes and concatenates bytes. *)
 
 
@@ -552,6 +556,13 @@ module Sink : sig
   val ( *> ) : ('a, _) t -> ('b, 'r) t -> ('a * 'b, 'r) t
   (** [left *> right] is an operator version of [unzip_right left right]. *)
 
+  val many : ('a, 'r) t list -> ('a, 'r list) t
+  (** [many sinks] computes all [sinks] at the same time, producing the results
+      as a list. All [sinks] must have produce the same result.
+      
+      The sinks will be computed until all sinks are full or until the sink is
+      stopped explicitly. *)
+
   val distribute : ('a, 'r1) t -> ('a, 'r2) t -> ('a, 'r1 * 'r2) t
   (** [distribute left right] is similar to [zip] but distributes the
       consumed elements over [left] and [right] alternating in a round robin
@@ -631,7 +642,7 @@ module Sink : sig
   (** [sink >>= f] is an operator version of [flat_map f sink]. *)
 
 
-  (** {1 Mapping and filtering sinks} *)
+  (** {1 Transforming and filtering sinks} *)
 
   val map : ('r1 -> 'r2) -> ('a, 'r1) t -> ('a, 'r2) t
   (** [map f sink] is a sink [sink] with the result transformed with [f]. *)
@@ -641,7 +652,6 @@ module Sink : sig
 
   val premap : ('b -> 'a) -> ('a, 'r) t -> ('b, 'r) t
   (** [premap f sink] is a sink that {e premaps} the input values.
-
 
       {4 Examples}
 
@@ -662,10 +672,19 @@ module Sink : sig
   (** [prefilter_map f sink] applies [f] to every input value [x] of sink, discarding it if
       [f x] produces [None], and keeping the transformed value otherwise.  *)
 
+  val push : 'a -> ('a, 'r) sink -> ('a, 'r) sink
+  (** [push x sink] updates [sink]'s internal state by pushing [x] into it. *)
+
+
   (** {1 Resource management} *)
 
   val dispose : ('a, 'r) t -> 'r
+  [@@ocaml.deprecated]
   (** Close the sink and produce the currently accumulated result. Any internal
+      state will be terminated. *)
+
+  val stop : ('a, 'r) t -> 'r
+  (** Stop the sink and produce the currently accumulated result. Any internal
       state will be terminated. *)
 
 

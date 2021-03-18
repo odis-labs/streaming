@@ -188,21 +188,21 @@ let () =
   let t = T.test ~verbose T.int in
   T.group "Sink.product" [
     t "no input" ~actual:(into Sink.product Stream.empty) ~expected:1;
-    t "finited input" ~actual:(into Sink.product (Stream.of_list [1; 4; 2])) ~expected:8;
+    t "finite input" ~actual:(into Sink.product (Stream.of_list [1; 4; 2])) ~expected:8;
     t "finite input with zero" ~actual:(into Sink.product (Stream.of_list [1; 0; 2])) ~expected:0;
   ];
 
   let t = T.test ~verbose T.string in
   T.group "Sink.string" [
-    t "no input" ~actual:(into Sink.string Stream.empty) ~expected:"";
-    t "finited input" ~actual:(into Sink.string (Stream.of_list ["a"; "b"; "c"])) ~expected:"abc";
+    t "no input" ~actual:(into (Sink.string ()) Stream.empty) ~expected:"";
+    t "finite input" ~actual:(into (Sink.string ()) (Stream.of_list ["a"; "b"; "c"])) ~expected:"abc";
   ];
 
   let t = T.test ~verbose T.int in
   T.group "Sink.dispose" [
-    t "init and stop" ~expected:2 ~actual:begin
+    t "init and stop" ~expected:1 ~actual:begin
       let x = ref 0 in
-      let sink = Sink.make ~init:(fun () -> incr x) ~stop:(fun () -> incr x)
+      let sink = Sink.make ~init:() ~stop:(fun () -> incr x)
         ~push:(fun r _ -> r) () in
       Sink.dispose sink;
       !x
@@ -212,9 +212,9 @@ let () =
   let t = T.test ~verbose T.int in
   T.group "Sink.map" [
     t "no input" ~expected:0
-      ~actual:(into Sink.(map String.length string) Stream.empty) ;
+      ~actual:(into Sink.(map String.length (string ())) Stream.empty) ;
     t "finite" ~expected:3
-      ~actual:(into Sink.(map String.length string) (Stream.of_list ["a"; "b"; "c"]));
+      ~actual:(into Sink.(map String.length (string ()))  (Stream.of_list ["a"; "b"; "c"]));
   ];
 
   let t = T.test ~verbose T.int in

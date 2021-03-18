@@ -27,7 +27,7 @@ let run ~from:(Source src) ~via:{flow} ~into:snk =
         (r', None) in
 
   (* Create the sink state. If this fails, there's nothing we can do. *)
-  let r0 = snk.init () in
+  let r0 = snk.init in
   (* Check if k is full, if so, return (the full src is leftover). *)
   if snk.full r0 then (snk.stop r0, Some (Source src)) else
   (* Create the src state. If this fail, we close the snk state. *)
@@ -49,7 +49,7 @@ let from (Source src) =
       | Some (x, s') -> loop (k.push r x) s'
     in
     (* Create the sink state. If this fails, there's nothing we can do. *)
-    let r0 = k.init () in
+    let r0 = k.init in
     (* Check if k is full, if so, return (src is not initialized). *)
     if k.full r0 then k.stop r0 else
     (* Create the src state. If this fail, we close the snk state. *)
@@ -77,7 +77,7 @@ let of_list xs =
       else match s with
         | [] -> r
         | x :: s' -> loop s' (k.push r x) in
-    bracket (loop xs) ~init:k.init ~stop:k.stop in
+    bracket (loop xs) ~init:(fun () -> k.init) ~stop:k.stop in
   { stream }
 
 
@@ -85,7 +85,7 @@ let to_array stream = into Sink.array stream
 
 let of_array xs = from (Source.array xs)
 
-let to_string stream = into Sink.(premap (String.make 1) string) stream
+let to_string stream = into Sink.(premap (String.make 1) (string ())) stream
 
 let of_string xs = from (Source.string xs)
 
@@ -103,7 +103,7 @@ let of_iter iter =
           if k.full !out then raise Stop_iter);
           !out
       with Stop_iter -> !out in
-    bracket go ~init:k.init ~stop:k.stop in
+    bracket go ~init:(fun () -> k.init) ~stop:k.stop in
   { stream }
 
 
@@ -134,22 +134,22 @@ let drain stream =
 (* Creating a stream *)
 
 let empty =
-  let stream (Sink k) = k.stop (k.init ()) in
+  let stream (Sink k) = k.stop (k.init) in
   { stream }
 
 
 let single x =
-  let stream (Sink r) = r.stop (r.push (r.init ()) x) in
+  let stream (Sink k) = k.stop (k.push (k.init) x) in
   { stream }
 
 
 let double x1 x2 =
-  let stream (Sink k) = k.stop (k.push (k.push (k.init ()) x1) x2) in
+  let stream (Sink k) = k.stop (k.push (k.push (k.init) x1) x2) in
   { stream }
 
 
 let triple x1 x2 x3 =
-  let stream (Sink k) = k.stop (k.push (k.push (k.push (k.init ()) x1) x2) x3) in
+  let stream (Sink k) = k.stop (k.push (k.push (k.push (k.init) x1) x2) x3) in
   { stream }
 
 
@@ -167,7 +167,7 @@ let count n =
     let rec loop s r =
       if k.full r then r
       else loop (s + 1) (k.push r s) in
-    bracket (loop n) ~init:k.init ~stop:k.stop in
+    bracket (loop n) ~init:(fun () -> k.init) ~stop:k.stop in
   { stream }
 
 
@@ -183,7 +183,7 @@ let[@inline] range ?by:(step=1) n m =
       else
         if i >= m then r
         else loop (i + step) (k.push r i) in
-    k.stop (loop n (k.init ())) in
+    k.stop (loop n (k.init)) in
   { stream }
 
 let iota n =
@@ -201,12 +201,12 @@ let repeat ?times:n x =
       let rec loop r =
         if k.full r then r
         else loop (k.push r x) in
-      bracket loop ~init:k.init ~stop:k.stop
+      bracket loop ~init:(fun () -> k.init) ~stop:k.stop
     | Some n ->
       let rec loop i r =
         if k.full r || i = n then r
         else loop (i + 1) (k.push r x) in
-      bracket (loop 0) ~init:k.init ~stop:k.stop in
+      bracket (loop 0) ~init:(fun () -> k.init) ~stop:k.stop in
   { stream }
 
 
@@ -217,12 +217,12 @@ let repeatedly ?times:n f =
       let rec loop r =
         if k.full r then r
         else loop (k.push r (f ())) in
-      bracket loop ~init:k.init ~stop:k.stop
+      bracket loop ~init:(fun () -> k.init) ~stop:k.stop
     | Some n ->
       let rec loop i r =
         if k.full r || i = n then r
         else loop (i + 1) (k.push r (f ())) in
-      bracket (loop 0) ~init:k.init ~stop:k.stop in
+      bracket (loop 0) ~init:(fun () -> k.init) ~stop:k.stop in
   { stream }
 
 
@@ -232,7 +232,7 @@ let flat_map f this =
   let stream (Sink k) =
     let push r x =
       (f x).stream (Sink { k with
-          init = (fun () -> r);
+          init = r;
           stop = (fun r -> r)
         }) in
     this.stream (Sink { k with push }) in
@@ -243,7 +243,7 @@ let concat this that =
   let stream (Sink k) =
     let stop r =
       if k.full r then k.stop r else
-      that.stream (Sink {k with init = (fun () -> r)}) in
+      that.stream (Sink {k with init = r}) in
     this.stream (Sink { k with stop }) in
   { stream }
 
@@ -269,7 +269,7 @@ let cycle ?times:(n = -1) this =
     let rec stop r =
       if k.full r || !i = n then k.stop r else
       (incr i;
-       this.stream (Sink {k with init = (fun () -> r); stop }))
+       this.stream (Sink {k with init = r; stop }))
     in
     this.stream (Sink { k with stop }) in
   { stream }
@@ -370,7 +370,7 @@ let indexed self =
 let partition n self =
   if n = 0 then empty else
   let stream (Sink k) =
-    let init () = (k.init (), 0, empty) in
+    let init = (k.init, 0, empty) in
     let push (r, i, acc) x =
       if i = n then (k.push r acc, 1, single x)
       else (r, i + 1, acc ++ single x) in
@@ -386,7 +386,7 @@ let partition n self =
 (* How efficient is this for > 1K elements? *)
 let split ~by:pred self =
   let stream (Sink k) =
-    let init () = (k.init (), empty) in
+    let init = (k.init, empty) in
     let push (r, acc) x =
       if pred x then (k.push r acc, empty)
       else (r, acc ++ single x) in
@@ -428,7 +428,7 @@ let of_file path =
     let stop r =
       if Lazy.is_val ic then close_in (Lazy.force ic);
       k.stop r in
-    bracket loop ~init:k.init ~stop in
+    bracket loop ~init:(fun () -> k.init) ~stop in
   { stream }
 
 
@@ -443,7 +443,7 @@ let stdin =
       else
         try loop (k.push r (input_line Pervasives.stdin))
         with End_of_file -> r in
-    bracket loop ~init:k.init ~stop:k.stop in
+    bracket loop ~init:(fun () -> k.init) ~stop:k.stop in
   { stream }
 
 

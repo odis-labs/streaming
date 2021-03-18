@@ -9,7 +9,7 @@ type +'a source =
 
 type ('a, 'r) sink =
   Sink : {
-    init : unit -> 's;
+    init : 's;
     push : 's -> 'a -> 's;
     full : 's -> bool;
     stop : 's -> 'r;
