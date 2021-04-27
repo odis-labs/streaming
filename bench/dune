@@ -1,10 +1,5 @@
 (executable
  (public_name streaming-bench-main)
+ (package streaming-bench)
  (name Bench_main)
- (libraries
-  cmdliner
-  streaming
-  current-bench-bechamel
-  bechamel
-  bechamel-notty
-  notty.unix))
+ (libraries cmdliner yojson streaming bechamel bechamel-notty notty.unix))
