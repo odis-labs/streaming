@@ -1,0 +1,10 @@
+(executable
+ (public_name streaming-bench-main)
+ (name Bench_main)
+ (libraries
+  cmdliner
+  streaming
+  current-bench-bechamel
+  bechamel
+  bechamel-notty
+  notty.unix))
