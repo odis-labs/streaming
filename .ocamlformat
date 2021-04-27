@@ -1,0 +1,12 @@
+profile=conventional
+align-cases = false
+break-cases = fit
+cases-matching-exp-indent = normal
+exp-grouping=preserve
+cases-exp-indent = 2
+margin = 80
+parse-docstrings = true
+wrap-comments = false
+break-cases=fit-or-vertical
+module-item-spacing=preserve
+let-binding-spacing=sparse
