@@ -15,6 +15,7 @@ synopsis: "Benchmarks for streaming."
 depends: [
   "dune" {>= "2.0"}
   "ocaml" {>= "4.08.0"}
+  "cmdliner"
   "streaming"
   "bechamel"
   "bechamel-notty"
