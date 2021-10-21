@@ -392,6 +392,24 @@ let split ~by:pred self =
   { stream }
 
 
+let split_between pred ~into:(Sink out) self =
+  let stream (Sink k) =
+    let init () = (k.init (), out.init (), None) in
+    let push (r, acc, prev) curr =
+      match prev with
+      | None -> (r, out.push acc curr, Some curr)
+      | Some prev ->
+        if pred prev curr then
+          (k.push r (out.stop acc), out.push (out.init ()) curr, Some curr)
+        else (r, out.push acc curr, Some curr)
+    in
+    let stop (r, acc, _last) = k.push r (out.stop acc) |> k.stop in
+    let full (r, acc, _) = k.full r || out.full acc in
+    self.stream (Sink { init; push; full; stop })
+  in
+  { stream }
+
+
 let through sink self = via (Flow.through sink) self
 
 let group ?equal:(_ = Pervasives.( = )) self =
