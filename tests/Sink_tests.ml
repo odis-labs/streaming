@@ -247,6 +247,17 @@ let () =
         ~expected:[ 0; 0; 0 ];
     ];
 
+  let t = T.test ~verbose T.(list int) in
+  T.group "Sink.list_rev"
+    [
+      t "no input" ~actual:(into Sink.list Stream.empty) ~expected:[];
+      t "finite input"
+        ~actual:(into Sink.list_rev (0 -< 5))
+        ~expected:[ 4; 3; 2; 1; 0 ];
+      t "infinite input with take"
+        ~actual:(into Sink.list_rev Stream.(take 3 (count 0)))
+        ~expected:[ 2; 1; 0 ];
+    ];
   let t = T.test ~verbose T.(array int) in
   T.group "Sink.array"
     [

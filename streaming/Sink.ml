@@ -566,16 +566,6 @@ let any ~where:pred =
 
 let print = each print_endline
 
-let rev_list =
-  Sink
-    {
-      init = (fun () -> []);
-      push = (fun acc x -> x :: acc);
-      full = (fun _ -> false);
-      stop = (fun acc -> acc);
-    }
-
-
 let list =
   Sink
     {
@@ -583,6 +573,16 @@ let list =
       push = (fun acc x -> x :: acc);
       full = (fun _ -> false);
       stop = (fun acc -> List.rev acc);
+    }
+
+
+let list_rev =
+  Sink
+    {
+      init = (fun () -> []);
+      push = (fun acc x -> x :: acc);
+      full = (fun _ -> false);
+      stop = (fun acc -> acc);
     }
 
 

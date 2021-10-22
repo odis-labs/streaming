@@ -456,6 +456,10 @@ module Sink : sig
   val list : ('a, 'a list) t
   (** Puts all input elements into a list. *)
 
+  val list_rev : ('a, 'a list) t
+  (** Puts all input elements into a list in the reverse order.
+      Faster than {!val:list} as no reveral is performed. *)
+
   val array : ('a, 'a array) t
   (** Puts all input elements into an array. *)
 
