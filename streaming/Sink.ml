@@ -352,7 +352,7 @@ let full =
   Sink
     {
       init = (fun () -> ());
-      push = (fun () _ -> ());
+      push = (fun () _ -> invalid_arg "push to full sink");
       full = (fun () -> true);
       stop = (fun () -> ());
     }
@@ -539,6 +539,10 @@ let is_empty =
       stop = (fun acc -> acc);
     }
 
+
+let is_full (Sink k) = k.full (k.init ())
+
+let push x (Sink k) = Sink { k with init = (fun () -> k.push (k.init ()) x) }
 
 let all ~where:pred =
   Sink

@@ -73,6 +73,24 @@ let () =
       t "finite input" ~actual:(into Sink.is_empty (0 -< 10)) ~expected:false;
     ];
 
+  let t = T.test T.bool ~verbose in
+  T.group "Sink.is_full"
+    [
+      t "full" ~actual:(Sink.is_full Sink.full) ~expected:true;
+      t "not full" ~actual:(Sink.is_full Sink.drain) ~expected:false;
+    ];
+
+  let t = T.test T.(list int) ~verbose in
+  T.group "Sink.push"
+    [
+      t "push one"
+        ~actual:(Sink.dispose (Sink.push 1 Sink.list))
+        ~expected:[ 1 ];
+      t "push many"
+        ~actual:(Sink.dispose (Sink.push 2 (Sink.push 1 Sink.list)))
+        ~expected:[ 1; 2 ];
+    ];
+
   let t = T.test ~verbose T.(option int) in
   T.group "Sink.nth"
     [

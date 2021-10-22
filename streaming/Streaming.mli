@@ -378,9 +378,17 @@ module Sink : sig
   (** A full sink that will not consume any input and will not produce any
       results. *)
 
+  val is_full : ('a, 'r) t -> bool
+  (** [is_full sink] is [true] if [sink] is full. Full sinks do not consume
+      any elements but will be initialised to determine if they are full. *)
+
   val is_empty : ('a, bool) t
-  (** [is_empty] is [true] if the sink did not consume any elements and [false]
-      otherwise. *)
+  (** [is_empty] is a sink that produces [true] when it is stopped without
+      consuming any elements. *)
+  
+  val push : 'a -> ('a, 'r) sink -> ('a, 'r) sink
+  (** [push x sink] updates [sink]'s internal state by pushing [x] into it.
+      The internal sink's state will be initialised. *)
 
   val each : ('a -> unit) -> ('a, unit) t
   (** Applies an effectful action to all input elements producing nothing. *)
