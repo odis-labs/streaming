@@ -1138,6 +1138,26 @@ module Stream : sig
   (** [split ~by:predicate stream] splits [stream] when [predicate x] is [true]
       for some stream item [x]. *)
 
+  val split_between : ('a -> 'a -> bool) -> into:('a, 'r) sink -> 'a t -> 'r t
+  (** Split stream elements based on a binary predicate.
+
+      [split_between predicate ~into:sink stream] is a stream of values computed from
+      groups of consecutive elements by continuously feeding [sink]. When the binary
+      [predicate] is [true] for a pair of elements, the currently aggregated sink value
+      is yielded and a new group is started.
+
+      If the input stream has less than 2 elements, [predicate] is never called and
+      the sink is computed with 1 or no elements.
+      
+      {[
+      let sums_of_groups =
+        [1; 2; 3; 101; 102; 103; 1001; 1002; 1003]
+        |> Stream.of_list
+        |> Stream.split_between
+            (fun x y -> y - x > 10)
+            ~into:Sink.sum in
+      assert (Stream.to_list sums_of_groups = [6; 306; 3006])
+      ]} *)
 
   val through : ('a, 'r) sink -> 'a t -> 'r t
   (** [through sink stream] repeatedly processes [stream] elements with [sink]
