@@ -94,6 +94,37 @@ let ( <&> ) = zip
 let ( <& ) = zip_left
 let ( &> ) = zip_right
 
+type ('a, 'r) many =
+  | Many : {
+      acc : 'acc;
+      push : 'acc -> 'a -> 'acc;
+      full : 'acc -> bool;
+      stop : 'acc -> 'r;
+    }
+      -> ('a, 'r) many
+
+let many sinks =
+  match sinks with
+  | [] -> fill []
+  | sinks ->
+    let init () =
+      List.map
+        (fun (Sink k) ->
+          Many { acc = k.init (); push = k.push; full = k.full; stop = k.stop })
+        sinks
+    in
+    let push sinks x =
+      List.map
+        (fun (Many k) ->
+          let acc = if k.full k.acc then k.acc else k.push k.acc x in
+          Many { k with acc })
+        sinks
+    in
+    let full list = List.for_all (fun (Many k) -> k.full k.acc) list in
+    let stop list = List.map (fun (Many k) -> k.stop k.acc) list in
+    Sink { init; push; full; stop }
+
+
 let unzip (Sink l) (Sink r) =
   let init () = (l.init (), r.init ()) in
   let push (l_acc, r_acc) (x, y) = (l.push l_acc x, r.push r_acc y) in

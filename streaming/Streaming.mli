@@ -520,6 +520,13 @@ module Sink : sig
   val (&>) : ('a, _) t -> ('a, 'r) t -> ('a, 'r) t
   (** [left &> right] is an operator version of [zip_right left right]. *)
 
+  val many : ('a, 'r) t list -> ('a, 'r list) t
+  (** [many sinks] computes all [sinks] at the same time with the same input.
+      All [sinks] must have produce the same result type.
+      
+      The sinks will be computed until all sinks are full or until the sink is
+      stopped explicitly. *)
+
   val unzip : ('a, 'r1) t -> ('b, 'r2) t -> ('a * 'b, 'r1 * 'r2) t
   (** [unzip left right] is a sink that receives pairs ['a * 'b], sending the
       first element into [left] and the second into [right]. Both sinks are

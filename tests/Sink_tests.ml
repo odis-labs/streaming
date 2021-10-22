@@ -390,6 +390,19 @@ let () =
       t "finite" ~expected:(5, 35) ~actual:(into Sink.(zip len sum) (5 -< 10));
     ];
 
+  let t = T.test T.(list int) ~verbose in
+  T.group "Sink.many"
+    [
+      t "no sinks" ~actual:(into (Sink.many []) Stream.empty) ~expected:[];
+      t "one sink"
+        ~actual:(into (Sink.many [ Sink.sum ]) (0 -< 10))
+        ~expected:[ 45 ];
+      t "many sinks"
+        ~actual:
+          (into (Sink.many [ Sink.sum; Sink.len; Sink.product ]) (0 -< 10))
+        ~expected:[ 45; 10; 0 ];
+    ];
+
   let t = T.test ~verbose T.(pair (list int) (list int)) in
   T.group "Sink.distribute"
     [
