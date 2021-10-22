@@ -817,6 +817,9 @@ module Flow : sig
   val map : ('a -> 'b) -> ('a, 'b) t
   (** A flow with all elements transformed with a mapping function. *)
 
+  val tap : ('a -> unit) -> ('a, 'a) t
+  (** A flow with all elements passed through an effectful function. *)
+
   val take : int -> ('a, 'a) t
   (** Take first [n] elements from the source and discard the rest. *)
 
@@ -1046,6 +1049,9 @@ module Stream : sig
 
   val map : ('a -> 'b) -> 'a t -> 'b t
   (** A stream with all elements transformed with a mapping function. *)
+
+  val tap : ('a -> unit) -> 'a t -> 'a t
+  (** Pass each element through an effectful function. *)
 
   val filter : ('a -> bool) -> 'a t -> 'a t
   (** A stream that includes only the elements that satisfy a predicate. *)

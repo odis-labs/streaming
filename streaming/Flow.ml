@@ -20,6 +20,17 @@ let map f =
   { flow }
 
 
+let tap f =
+  let flow (Sink k) =
+    let push r x =
+      f x;
+      k.push r x
+    in
+    Sink { k with push }
+  in
+  { flow }
+
+
 let select pred =
   let flow (Sink k) =
     let push r x = if pred x then k.push r x else r in

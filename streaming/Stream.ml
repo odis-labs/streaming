@@ -311,6 +311,8 @@ let via { flow } this =
 
 let map f this = via (Flow.map f) this
 
+let tap f this = via (Flow.tap f) this
+
 let filter pred this = via (Flow.filter pred) this
 
 let filter_map f this = via (Flow.filter_map f) this
