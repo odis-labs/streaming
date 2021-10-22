@@ -54,6 +54,8 @@ let zip (Sink l) (Sink r) =
   Sink { init; push; full; stop }
 
 
+let both = zip
+
 let zip_left (Sink l) (Sink r) =
   let init () = (l.init (), r.init ()) in
   let push (l_acc, r_acc) x = (l.push l_acc x, r.push r_acc x) in

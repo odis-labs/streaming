@@ -499,6 +499,10 @@ module Sink : sig
       with the same input being sent to both sinks. The results of both sinks
       are produced. *)
 
+  val both : ('a, 'r1) t -> ('a, 'r2) t -> ('a, 'r1 * 'r2) t
+  (** [both left right] computes both [left] and [right] at the same time
+      with the same input. Alias for {!val:zip}. *)
+
   val zip_left : ('a, 'r) t -> ('a, _) t -> ('a, 'r) t
   (** [zip_left left right] similar to {!val:zip}, but only produces the
       result of the [left] sink. *)
