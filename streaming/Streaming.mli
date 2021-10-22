@@ -683,9 +683,9 @@ module Sink : sig
 
   (** {1 Resource management} *)
 
-  val dispose : ('a, 'r) t -> 'r
-  (** Close the sink and produce the currently accumulated result. Any internal
-      state will be terminated. *)
+  val stop : ('a, 'r) t -> 'r
+  (** Stop the sink and produce the currently accumulated result. Any internal
+      state will be terminated. Terminating an uninitialized sink will initialize it. *)
 
 
   (** {1 Syntax definitions}

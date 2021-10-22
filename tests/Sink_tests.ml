@@ -83,11 +83,9 @@ let () =
   let t = T.test T.(list int) ~verbose in
   T.group "Sink.push"
     [
-      t "push one"
-        ~actual:(Sink.dispose (Sink.push 1 Sink.list))
-        ~expected:[ 1 ];
+      t "push one" ~actual:(Sink.stop (Sink.push 1 Sink.list)) ~expected:[ 1 ];
       t "push many"
-        ~actual:(Sink.dispose (Sink.push 2 (Sink.push 1 Sink.list)))
+        ~actual:(Sink.stop (Sink.push 2 (Sink.push 1 Sink.list)))
         ~expected:[ 1; 2 ];
     ];
 
@@ -311,7 +309,7 @@ let () =
     ];
 
   let t = T.test ~verbose T.int in
-  T.group "Sink.dispose"
+  T.group "Sink.stop"
     [
       t "init and stop" ~expected:2
         ~actual:
@@ -324,7 +322,7 @@ let () =
                 ~push:(fun r _ -> r)
                 ()
             in
-            Sink.dispose sink;
+            Sink.stop sink;
             !x
           end;
     ];

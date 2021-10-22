@@ -718,7 +718,7 @@ let stdout =
     }
 
 
-let dispose (Sink snk) = snk.stop (snk.init ())
+let stop (Sink snk) = snk.stop (snk.init ())
 
 module Syntax = struct
   let return = fill
