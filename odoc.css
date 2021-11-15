@@ -41,17 +41,15 @@ body {
   color: #333;
 }
 
-.content {
+.odoc-content, .odoc-preamble {
   max-width: 88ex;
   margin-left: calc(10vw + 20ex);
   margin-right: 4ex;
   margin-top: 20px;
-  margin-bottom: 50px;
   line-height: 1.6em;
 }
-
-.content>header {
-  margin-bottom: 30px;
+.odoc-content {
+  margin-bottom: 50px;
 }
 
 /* Basic markup elements */
@@ -589,7 +587,7 @@ h1+.modules, h1+.sel {
 }
 
 
-.toc:before {
+.odoc-toc:before {
   display: block;
   content: "Contents";
   text-transform: uppercase;
@@ -600,7 +598,7 @@ h1+.modules, h1+.sel {
   line-height: 1.2;
 }
 
-.toc {
+.odoc-toc {
   position: fixed;
   top: 0px;
   bottom: 0px;
@@ -615,7 +613,7 @@ h1+.modules, h1+.sel {
   padding-right: 2ex;
 }
 
-.toc ul li a {
+.odoc-toc ul li a {
   /* font-family: "Fira Sans", sans-serif; */
   font-size: 0.95em;
   color: #333;
@@ -624,32 +622,32 @@ h1+.modules, h1+.sel {
   display: block;
 }
 
-.toc ul li a:hover {
+.odoc-toc ul li a:hover {
   box-shadow: none;
   text-decoration: underline;
 }
 
 /* Section headings */
-.toc>ul>li>a {
+.odoc-toc>ul>li>a {
   font-weight: 600;
 }
 
-.toc li ul {
+.odoc-toc li ul {
   margin: 0px;
 }
 
-.toc ul {
+.odoc-toc ul {
   list-style-type: none;
 }
 
-.toc ul li {
+.odoc-toc ul li {
   margin: 0;
 }
-.toc>ul>li {
+.odoc-toc>ul>li {
   margin-bottom: 0.3em;
 }
 
-.toc ul li li {
+.odoc-toc ul li li {
   position: relative;
   /* border-left: 1px solid #ccc; */
   padding-left: 15px;
@@ -659,11 +657,11 @@ h1+.modules, h1+.sel {
 /* Mobile adjustements. */
 
 @media only screen and (max-width: 95ex) {
-  .content {
+  .odoc-content, .odoc-preamble {
     margin: auto;
     padding: 2.0em;
   }
-  .toc {
+  .odoc-toc {
     position: static;
     width: auto;
     min-width: unset;
