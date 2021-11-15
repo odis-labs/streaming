@@ -36,7 +36,13 @@ sequential data efficiently, in constant space and without leaking resources. *)
 
 
 (** Type for sources that produce elements of type ['a]. *)
-type +'a source
+type +'a source =
+  | Source : {
+    init : unit -> 's;
+    pull : 's -> ('a * 's) option;
+    stop : 's -> unit;
+  }
+    -> 'a source
 
 
 (** Module with defintions for sources.
@@ -258,7 +264,14 @@ end
 
 (** Type for sinks that consume elements of type ['a] and, once done, produce
     a value of type ['b]. *)
-type ('a, 'b) sink
+type ('a, 'b) sink =
+  | Sink : {
+        init : unit -> 's;
+        push : 's -> 'a -> 's;
+        full : 's -> bool;
+        stop : 's -> 'r;
+      }
+        -> ('a, 'r) sink
 
 
 (** Module with defintions for sinks.
@@ -787,7 +800,7 @@ end
 
 (** Stream transformers that consume values of type ['a] and produce values of
     type ['b]. *)
-type ('a, 'b) flow
+type ('a, 'b) flow = { flow : 'r. ('b, 'r) sink -> ('a, 'r) sink } [@@unboxed]
 
 
 (** Module with definitions for flows.
@@ -905,7 +918,7 @@ end
       - : unit = ()
     ]} *)
 
-type 'a stream
+type 'a stream = { stream : 'r. ('a, 'r) sink -> 'r } [@@unboxed]
 (** Type for streams with elements of type ['a]. *)
 
 
