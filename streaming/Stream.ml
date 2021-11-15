@@ -194,6 +194,21 @@ let[@inline] range ?by:(step = 1) n m =
     { stream }
 
 
+let product_with f outer inner =
+  let stream (Sink snk) =
+    let push acc x =
+      let init () = acc in
+      let push acc y = snk.push acc (f x y) in
+      let stop acc = acc in
+      inner.stream (Sink { snk with init; push; stop })
+    in
+    outer.stream (Sink { snk with push })
+  in
+  { stream }
+
+
+let product outer inner = product_with (fun x y -> (x, y)) outer inner
+
 let iota n = range 0 n
 
 let ( -< ) n m = range n m

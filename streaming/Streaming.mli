@@ -1160,6 +1160,23 @@ module Stream : sig
   val interpose : 'a -> 'a t -> 'a t
   (** Inserts a separator element between each stream element. *)
 
+  val product : 'a t -> 'b t -> ('a * 'b) t
+  (** [product outer inner] is a cartesian product of streams
+      [outer] and [inner].
+      
+      Same as [product_with (fun x y -> (x, y))].
+      
+      {[
+      let pairs =
+        Stream.product (Stream.range 0 3) (Stream.of_string "ab")
+        |> Stream.to_list in
+      assert (pairs = [(0, 'a'); (0, 'b'); (1, 'a'); (1, 'b'); (2, 'a'); (2, 'b')])
+      ]} *)
+
+  val product_with : ('a -> 'b -> 'c) -> 'a t -> 'b t -> 'c t
+  (** [product_with combine outer inner] is a cartesian product of streams
+      [stream1] and [stream2] with pairs combined with [combine]. *)
+  
 
   (** {1 Groupping and splitting} *)
 

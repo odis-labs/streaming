@@ -307,6 +307,28 @@ let () =
     (*   ~actual:S.(to_list (take 3 (cycle empty))) *)
   ];
 
+  let t = T.test T.(list (pair int char)) ~verbose in
+  T.group "Stream.product"
+    [
+      t "both empty" ~expected:[]
+        ~actual:S.(to_list (product Stream.empty Stream.empty));
+      t "outer empty" ~expected:[]
+        ~actual:S.(to_list (product Stream.empty (Stream.of_string "abc")));
+      t "inner empty" ~expected:[]
+        ~actual:S.(to_list (product (0 -< 2) Stream.empty));
+      t "both non-empty"
+        ~expected:[ (0, 'a'); (0, 'b'); (0, 'c'); (1, 'a'); (1, 'b'); (1, 'c') ]
+        ~actual:S.(to_list (product (0 -< 2) (Stream.of_string "abc")));
+    ];
+
+  let t = T.test T.(list int) ~verbose in
+  T.group "Stream.product_with"
+    [
+      t "sum pairs"
+        ~expected:[ 0 + 10; 0 + 11; 1 + 10; 1 + 11 ]
+        ~actual:S.(to_list (product_with ( + ) (0 -< 2) (10 -< 12)));
+    ];
+
   let t = T.test T.(list (list int)) ~verbose in
   T.group "Stream.partition" [
     t "size 0, empty" ~expected:[]
