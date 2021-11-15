@@ -1175,7 +1175,7 @@ module Stream : sig
 
   val product_with : ('a -> 'b -> 'c) -> 'a t -> 'b t -> 'c t
   (** [product_with combine outer inner] is a cartesian product of streams
-      [stream1] and [stream2] with pairs combined with [combine]. *)
+      [outer] and [inner] with pairs combined with [combine]. *)
   
 
   (** {1 Groupping and splitting} *)
