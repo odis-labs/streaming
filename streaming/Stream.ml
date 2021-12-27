@@ -209,6 +209,23 @@ let product_with f outer inner =
 
 let product outer inner = product_with (fun x y -> (x, y)) outer inner
 
+let[@inline] cartesian_range ?by_i:(step_i = 1) ?by_j:(step_j = 1) f n0 m0 n1 m1
+    =
+  if n0 > m0 || n1 > m1 then
+    invalid_arg "Streaming.Stream.cartesian_range: invalid range"
+  else
+    let[@inline] stream (Sink k) =
+      let rec loop i j r =        
+        if k.full r then r
+        else if i >= m0 && j < m1 then loop n0 (j + step_j) r
+        else if i >= m0 then r
+        else loop (i + step_i) j (k.push r (f i j))
+      in
+      k.stop (loop n0 n1 (k.init ()))
+    in
+    { stream }
+
+
 let iota n = range 0 n
 
 let ( -< ) n m = range n m
