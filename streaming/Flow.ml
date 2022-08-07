@@ -4,11 +4,8 @@ type ('a, 'b) t = ('a, 'b) flow = { flow : 'r. ('b, 'r) sink -> ('a, 'r) sink }
 [@@unboxed]
 
 let run { flow } = flow
-
 let identity = { flow = (fun sink -> sink) }
-
 let compose { flow = f } { flow = g } = { flow = (fun sink -> f (g sink)) }
-
 let ( << ) f1 f2 = compose f1 f2
 let ( >> ) f2 f1 = compose f1 f2
 
@@ -18,7 +15,6 @@ let map f =
     Sink { k with push }
   in
   { flow }
-
 
 let tap f =
   let flow (Sink k) =
@@ -30,7 +26,6 @@ let tap f =
   in
   { flow }
 
-
 let select pred =
   let flow (Sink k) =
     let push r x = if pred x then k.push r x else r in
@@ -38,9 +33,7 @@ let select pred =
   in
   { flow }
 
-
 let filter = select
-
 let reject pred = select (fun x -> not (pred x))
 
 let filter_map f =
@@ -54,7 +47,6 @@ let filter_map f =
   in
   { flow }
 
-
 let take n =
   let flow (Sink k) =
     let init () = (k.init (), 0) in
@@ -64,7 +56,6 @@ let take n =
     Sink { init; push; full; stop }
   in
   { flow }
-
 
 let take_while pred =
   let flow (Sink k) =
@@ -78,7 +69,6 @@ let take_while pred =
   in
   { flow }
 
-
 let drop n =
   let flow (Sink k) =
     let init () = (k.init (), 0) in
@@ -88,7 +78,6 @@ let drop n =
     Sink { init; push; full; stop }
   in
   { flow }
-
 
 let drop_while p =
   let flow (Sink k) =
@@ -101,7 +90,6 @@ let drop_while p =
     Sink { init; push; full; stop }
   in
   { flow }
-
 
 (* let cycle this = *)
 (*   let flow (Sink k) = *)
@@ -135,7 +123,6 @@ let buffer n =
     Sink { init; stop; full; push }
   in
   { flow }
-
 
 let through (Sink k0) =
   let flow (Sink k1) =

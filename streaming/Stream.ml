@@ -44,7 +44,6 @@ let run ~from:(Source src) ~via:{ flow } ~into:snk =
       let _r' = snk.stop r0 in
       raise exn
 
-
 let from (Source src) =
   let stream (Sink k) =
     (* Loop will terminate both src and k when src is exhausted. *)
@@ -77,7 +76,6 @@ let from (Source src) =
   in
   { stream }
 
-
 let into sink this = this.stream sink
 
 (* Conv *)
@@ -97,13 +95,9 @@ let of_list xs =
   in
   { stream }
 
-
 let to_array stream = into Sink.array stream
-
 let of_array xs = from (Source.array xs)
-
 let to_string stream = into Sink.(premap (String.make 1) string) stream
-
 let of_string xs = from (Source.string xs)
 
 exception Stop_iter
@@ -125,21 +119,14 @@ let of_iter iter =
   in
   { stream }
 
-
 (* Sinks *)
 
 let each f = into (Sink.each f)
-
 let fold f z = into (Sink.fold f z)
-
 let is_empty stream = into Sink.is_empty stream
-
 let len stream = into Sink.len stream
-
 let first stream = into Sink.first stream
-
 let last stream = into Sink.last stream
-
 let drain stream = into Sink.drain stream
 
 (* Creating a stream *)
@@ -148,16 +135,13 @@ let empty =
   let stream (Sink k) = k.stop (k.init ()) in
   { stream }
 
-
 let single x =
   let stream (Sink r) = r.stop (r.push (r.init ()) x) in
   { stream }
 
-
 let double x1 x2 =
   let stream (Sink k) = k.stop (k.push (k.push (k.init ()) x1) x2) in
   { stream }
-
 
 let triple x1 x2 x3 =
   let stream (Sink k) =
@@ -165,9 +149,7 @@ let triple x1 x2 x3 =
   in
   { stream }
 
-
 let unfold s0 pull = from (Source.unfold s0 pull)
-
 let generate ~len f = from (Source.generate ~len f)
 
 let count n =
@@ -176,7 +158,6 @@ let count n =
     bracket (loop n) ~init:k.init ~stop:k.stop
   in
   { stream }
-
 
 let iterate x f = from (Source.iterate x f)
 
@@ -193,7 +174,6 @@ let[@inline] range ?by:(step = 1) n m =
     in
     { stream }
 
-
 let product_with f outer inner =
   let stream (Sink snk) =
     let push acc x =
@@ -206,13 +186,9 @@ let product_with f outer inner =
   in
   { stream }
 
-
 let product outer inner = product_with (fun x y -> (x, y)) outer inner
-
 let iota n = range 0 n
-
 let ( -< ) n m = range n m
-
 let ( -- ) n m = range n (m - 1)
 
 let repeat ?times:n x =
@@ -229,7 +205,6 @@ let repeat ?times:n x =
   in
   { stream }
 
-
 let repeatedly ?times:n f =
   let stream (Sink k) =
     match n with
@@ -244,7 +219,6 @@ let repeatedly ?times:n f =
   in
   { stream }
 
-
 (* Combining streams *)
 
 let flat_map f this =
@@ -256,7 +230,6 @@ let flat_map f this =
   in
   { stream }
 
-
 let concat this that =
   let stream (Sink k) =
     let stop r =
@@ -267,13 +240,9 @@ let concat this that =
   in
   { stream }
 
-
 let ( ++ ) = concat
-
 let append x stream = concat stream (single x)
-
 let prepend x stream = concat (single x) stream
-
 let flatten nested = fold concat empty nested
 
 let cycle ?times:(n = -1) this =
@@ -291,7 +260,6 @@ let cycle ?times:(n = -1) this =
       this.stream (Sink { k with stop })
     in
     { stream }
-
 
 (* let interleave this that = *)
 (*   let stream (Sink k) = *)
@@ -318,28 +286,18 @@ let interpose sep self =
   in
   { stream }
 
-
 let via { flow } this =
   let stream sink = into (flow sink) this in
   { stream }
 
-
 let map f this = via (Flow.map f) this
-
 let tap f this = via (Flow.tap f) this
-
 let filter pred this = via (Flow.filter pred) this
-
 let filter_map f this = via (Flow.filter_map f) this
-
 let take n this = via (Flow.take n) this
-
 let take_while pred this = via (Flow.take_while pred) this
-
 let drop n this = via (Flow.drop n) this
-
 let drop_while pred this = via (Flow.drop_while pred) this
-
 let rest self = drop 1 self
 
 (* Does not work with effectful producers. *)
@@ -360,7 +318,6 @@ let unzip self =
   in
   ({ stream = left }, { stream = right })
 
-
 let indexed self =
   let stream (Sink k) =
     let i = ref 0 in
@@ -372,7 +329,6 @@ let indexed self =
     self.stream (Sink { k with push })
   in
   { stream }
-
 
 (* Groupping *)
 
@@ -394,7 +350,6 @@ let partition n self =
     in
     { stream }
 
-
 (* How efficient is this for > 1K elements? *)
 let split ~by:pred self =
   let stream (Sink k) =
@@ -407,7 +362,6 @@ let split ~by:pred self =
     self.stream (Sink { init; push; full; stop })
   in
   { stream }
-
 
 let split_between pred ~into:(Sink out) self =
   let stream (Sink k) =
@@ -426,7 +380,6 @@ let split_between pred ~into:(Sink out) self =
   in
   { stream }
 
-
 let through sink self = via (Flow.through sink) self
 
 let group ?equal:(_ = Pervasives.( = )) self =
@@ -435,7 +388,6 @@ let group ?equal:(_ = Pervasives.( = )) self =
     self.stream (Sink { k with push })
   in
   { stream }
-
 
 (* IO *)
 
@@ -459,7 +411,6 @@ let of_file path =
   in
   { stream }
 
-
 let to_file path = into (Sink.file path)
 
 let stdin =
@@ -474,9 +425,7 @@ let stdin =
   in
   { stream }
 
-
 let stdout = into Sink.stdout
-
 let stderr = into Sink.stderr
 
 (**/**)
@@ -487,6 +436,5 @@ let yield x = single x
 
 module Syntax = struct
   let yield x = yield x
-
   let ( let* ) t f = flat_map f t
 end

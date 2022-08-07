@@ -11,11 +11,8 @@ type 'a t = 'a source =
 let unfold seed pull =
   Source { init = (fun () -> seed); pull; stop = (fun _ -> ()) }
 
-
 let count n = unfold n (fun i -> Some (i, i + 1))
-
 let iterate x f = unfold x (fun x -> Some (x, f x))
-
 let make ~init ~pull ?(stop = ignore) () = Source { init; pull; stop }
 
 let list l =
@@ -25,7 +22,6 @@ let list l =
   in
   Source { init = (fun () -> l); pull; stop = (fun _ -> ()) }
 
-
 let seq s =
   let pull s =
     match s () with
@@ -34,32 +30,26 @@ let seq s =
   in
   Source { init = (fun () -> s); pull; stop = (fun _ -> ()) }
 
-
 let array a =
   let len = Array.length a in
   let pull i = if i >= len then None else Some (Array.unsafe_get a i, i + 1) in
   Source { init = (fun () -> 0); pull; stop = (fun _ -> ()) }
-
 
 let string s =
   let len = String.length s in
   let pull i = if i >= len then None else Some (String.unsafe_get s i, i + 1) in
   Source { init = (fun () -> 0); pull; stop = (fun _ -> ()) }
 
-
 let bytes s =
   let len = Bytes.length s in
   let pull i = if i >= len then None else Some (Bytes.unsafe_get s i, i + 1) in
   Source { init = (fun () -> 0); pull; stop = (fun _ -> ()) }
 
-
 let queue q =
   let pull q = if Queue.is_empty q then None else Some (Queue.pop q, q) in
   Source { init = (fun () -> q); pull; stop = (fun _ -> ()) }
 
-
 let empty = Source { init = ignore; pull = (fun () -> None); stop = ignore }
-
 let zero = empty
 
 let single a =
@@ -71,15 +61,12 @@ let single a =
   let stop _ = () in
   Source { init; pull; stop }
 
-
 let two a b = list [ a; b ]
-
 let three a b c = list [ a; b; c ]
 
 let generate ~len:n f =
   let pull i = if i >= n then None else Some (f i, i + 1) in
   Source { init = (fun () -> 0); pull; stop = (fun _ -> ()) }
-
 
 let take n (Source src) =
   let init () = (src.init (), 0) in
@@ -93,7 +80,6 @@ let take n (Source src) =
   let stop (s, _) = src.stop s in
   Source { init; pull; stop }
 
-
 let take_while p (Source src) =
   let pull s =
     match src.pull s with
@@ -101,7 +87,6 @@ let take_while p (Source src) =
     | _ -> None
   in
   Source { src with pull }
-
 
 let drop n (Source src) =
   let init () = (src.init (), 0) in
@@ -117,7 +102,6 @@ let drop n (Source src) =
   let stop (s, _) = src.stop s in
   Source { init; pull; stop }
 
-
 let drop_while p (Source src) =
   let init () = (src.init (), true) in
   let pull (s, dropping) =
@@ -132,7 +116,6 @@ let drop_while p (Source src) =
   let stop (s, _) = src.stop s in
   Source { init; pull; stop }
 
-
 let select p (Source src) =
   let pull s =
     let rec loop s =
@@ -145,9 +128,7 @@ let select p (Source src) =
   in
   Source { src with pull }
 
-
 let reject p src = select (fun x -> not (p x)) src
-
 let filter = select
 
 let map f (Source src) =
@@ -157,7 +138,6 @@ let map f (Source src) =
     | None -> None
   in
   Source { src with pull }
-
 
 let filter_map f (Source src) =
   let pull s =
@@ -173,7 +153,6 @@ let filter_map f (Source src) =
     loop s
   in
   Source { src with pull }
-
 
 let zip_with f (Source src1) (Source src2) =
   let init () = (src1.init (), src2.init ()) in
@@ -192,7 +171,6 @@ let zip_with f (Source src1) (Source src2) =
   in
   Source { init; pull; stop }
 
-
 let zip src1 src2 = zip_with (fun x y -> (x, y)) src1 src2
 
 let fold f r0 (Source src) =
@@ -209,7 +187,6 @@ let fold f r0 (Source src) =
   with exn ->
     src.stop s0;
     raise exn
-
 
 let len src = fold (fun count _ -> count + 1) 0 src
 
@@ -229,7 +206,6 @@ let each f (Source src) =
     src.stop s0;
     raise exn
 
-
 let next (Source src) =
   let go s =
     match src.pull s with
@@ -242,12 +218,10 @@ let next (Source src) =
     src.stop s0;
     raise exn
 
-
 let file path : string t =
   let init () = lazy (open_in path) in
   let stop ic = if Lazy.is_val ic then close_in (Lazy.force ic) in
   let pull ic = Some (input_line (Lazy.force ic), ic) in
   Source { init; stop; pull }
-
 
 let dispose (Source src) = src.stop (src.init ())

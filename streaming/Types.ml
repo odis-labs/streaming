@@ -16,5 +16,4 @@ type ('a, 'r) sink =
       -> ('a, 'r) sink
 
 type 'a stream = { stream : 'r. ('a, 'r) sink -> 'r } [@@unboxed]
-
 type ('a, 'b) flow = { flow : 'r. ('b, 'r) sink -> ('a, 'r) sink } [@@unboxed]
