@@ -1,0 +1,27 @@
+opam-version: "2.0"
+
+homepage: "http://github.com/odis-labs/streaming"
+doc: "https://odis-labs.github.io/streaming"
+bug-reports: "https://github.com/odis-labs/streaming/issues"
+license: "ISC"
+
+authors: [
+  "Rizo I <rizo@odis.io>"
+]
+maintainer: "Rizo I <rizo@odis.io>"
+dev-repo: "git+https://github.com/odis-labs/streaming.git"
+
+synopsis: "Benchmarks for streaming."
+depends: [
+  "dune" {>= "2.0"}
+  "ocaml" {>= "4.08.0"}
+  "cmdliner"
+  "streaming"
+  "bechamel"
+  "bechamel-notty"
+  "yojson"
+]
+
+build: [
+  ["dune" "build" "-p" name "-j" jobs "@install" "@doc" {with-doc}]
+]
