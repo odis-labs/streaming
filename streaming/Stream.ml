@@ -30,7 +30,7 @@ let run ~from:(Source src) ~via:{ flow } ~into:snk =
   (* Check if k is full, if so, return (the full src is leftover). *)
   if snk.full r0 then (snk.stop r0, Some (Source src))
   else
-    (* Create the src state. If this fail, we close the snk state. *)
+    (* Create the src state. If this fails, we close the snk state. *)
     let s0 =
       try src.init ()
       with exn ->
