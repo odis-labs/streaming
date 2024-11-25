@@ -23,4 +23,6 @@ docs-update: git-check-uncommited docs-build
 	fi
 	git checkout -
 
-
+.PHONY: bench
+bench:
+	@dune exec -- ./bench/Bench_main.exe --format=json
